@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>djBrave — mezclador de YouTube en el navegador</title>
+  <title>DjClaudeBrave — mezclador de YouTube en el navegador</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%2315171d'/%3E%3Ccircle cx='32' cy='32' r='23' fill='none' stroke='%23363d4d' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='16' fill='none' stroke='%23363d4d' stroke-width='2'/%3E%3Cpath d='M32 21a11 11 0 0 0 0 22z' fill='%23f5a524'/%3E%3Cpath d='M32 21a11 11 0 0 1 0 22z' fill='%234fb3ff'/%3E%3Ccircle cx='32' cy='32' r='2.5' fill='%2315171d'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -55,6 +56,16 @@ a { color: var(--b); }
   background-clip: text;
   color: transparent;
 }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand .logo { flex: none; }
+.brand span {
+  background: linear-gradient(90deg, var(--a), var(--b));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+body:has(.deck.playing) .brand .logo { animation: spin 1.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .tagline { margin: 0; color: var(--muted); flex: 1; }
 
 /* ---------- Botones ---------- */
@@ -375,14 +386,14 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
 </head>
 <body>
   <header class="topbar">
-    <h1 class="brand">djBrave</h1>
+    <h1 class="brand"><svg class="logo" viewBox="0 0 64 64" width="38" height="38" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#15171d"/><circle cx="32" cy="32" r="23" fill="none" stroke="#363d4d" stroke-width="2"/><circle cx="32" cy="32" r="16" fill="none" stroke="#363d4d" stroke-width="2"/><path d="M32 21a11 11 0 0 0 0 22z" fill="#f5a524"/><path d="M32 21a11 11 0 0 1 0 22z" fill="#4fb3ff"/><circle cx="32" cy="32" r="2.5" fill="#15171d"/></svg><span>DjClaudeBrave</span></h1>
     <p class="tagline">Dos decks de YouTube, un crossfader, cero cortes.</p>
     <button id="btnSettings" class="ghost" type="button">Clave de YouTube</button>
   </header>
 
   <div id="fileWarning" class="file-warning" hidden>
-    Abriste djBrave como archivo local (<code>file://</code>). La interfaz y la búsqueda funcionan, pero YouTube bloquea la reproducción fuera de una página web.
-    Ábrelo desde <a id="pagesLink" href="https://csav20.github.io/djBrave/">csav20.github.io/djBrave</a>.
+    Abriste DjClaudeBrave como archivo local (<code>file://</code>). La interfaz y la búsqueda funcionan, pero YouTube bloquea la reproducción fuera de una página web.
+    Ábrelo desde <a id="pagesLink" href="https://csav20.github.io/DjClaudeBrave/">csav20.github.io/DjClaudeBrave</a>.
   </div>
 
   <main class="console">
@@ -468,7 +479,7 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
 
   <div id="toasts" aria-live="polite"></div>
   <script>
-// djBrave — todo en un solo archivo: ábrelo desde GitHub Pages o cualquier servidor web.
+// DjClaudeBrave — todo en un solo archivo: ábrelo desde GitHub Pages o cualquier servidor web.
 (() => {
 "use strict";
 /* ================= ui.js ================= */
@@ -1208,7 +1219,7 @@ class Library {
     this.$count.textContent = this.queue.length ? this.queue.length : '';
     this.$queue.innerHTML = this.queue.length
       ? this.queue.map((t, i) => this.row(t, i, 'queue')).join('')
-      : '<li class="empty">La cola está vacía. Con Auto‑DJ activo, djBrave toma de aquí la siguiente pista y la mezcla sola.</li>';
+      : '<li class="empty">La cola está vacía. Con Auto‑DJ activo, DjClaudeBrave toma de aquí la siguiente pista y la mezcla sola.</li>';
   }
 
   enqueue(t) {
