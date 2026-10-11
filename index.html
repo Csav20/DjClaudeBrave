@@ -1,0 +1,1393 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>djBrave — mezclador de YouTube en el navegador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+/* djBrave — consola de grafito con dos decks codificados por color */
+:root {
+  --bg: #1b1e26;
+  --panel: #242833;
+  --panel-2: #2c3140;
+  --line: #363d4d;
+  --ink: #e9ebf1;
+  --muted: #8d95a8;
+  --a: #f5a524;
+  --b: #4fb3ff;
+  --danger: #ff6b6b;
+  --radius-lg: 14px;
+  --radius-sm: 6px;
+  --xf: 0;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --text: "Barlow", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 var(--text);
+  min-height: 100vh;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+a { color: var(--b); }
+
+/* ---------- Cabecera ---------- */
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  padding: 18px 24px 10px;
+}
+.brand {
+  font: 700 34px/1 var(--display);
+  letter-spacing: -0.01em;
+  margin: 0;
+  background: linear-gradient(90deg, var(--a), var(--b));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.tagline { margin: 0; color: var(--muted); flex: 1; }
+
+/* ---------- Botones ---------- */
+button {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:active { transform: translateY(1px); }
+.ghost { background: transparent; }
+.link { background: none; border: 0; padding: 0; color: var(--b); text-decoration: underline; }
+
+/* ---------- Aviso file:// ---------- */
+.file-warning {
+  margin: 4px 24px 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: rgb(255 107 107 / .12);
+  border: 1px solid rgb(255 107 107 / .5);
+}
+.file-warning a { color: var(--ink); font-weight: 600; }
+.tracklist li.source { font-size: 12px; padding-top: 4px; }
+
+/* ---------- Consola ---------- */
+.console {
+  display: grid;
+  grid-template-columns: 1fr 250px 1fr;
+  gap: 14px;
+  padding: 8px 24px 0;
+}
+
+.deck {
+  --accent: var(--a);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  transition: box-shadow .2s;
+}
+.deck[data-deck="B"] { --accent: var(--b); }
+.deck.drop { box-shadow: 0 0 0 2px var(--accent) inset; }
+
+.deck-head { display: flex; align-items: center; gap: 12px; }
+.deck-letter {
+  font: 700 40px/1 var(--display);
+  color: var(--accent);
+  width: 30px;
+}
+.deck-meta { flex: 1; min-width: 0; }
+.deck-title {
+  font: 600 19px/1.2 var(--display);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.deck:not(.loaded) .deck-title { color: var(--muted); }
+.deck-sub { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deck-bpm { text-align: right; line-height: 1; }
+.deck-bpm strong { display: block; font: 700 26px/1 var(--display); font-variant-numeric: tabular-nums; }
+.deck-bpm span { font-size: 12px; color: var(--muted); }
+
+.video-wrap {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #10131a;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.video-wrap iframe, .video-wrap > div { width: 100%; height: 100%; display: block; border: 0; }
+/* Capa sobre el video: el clic pasa por djBrave y el teclado no se pierde dentro de YouTube */
+.video-shield {
+  position: absolute; inset: 0;
+  background: transparent; border: 0; border-radius: 0; padding: 0;
+  cursor: pointer;
+}
+.video-shield:active { transform: none; }
+.silent-badge, .fail-badge {
+  position: absolute; left: 10px; right: 10px; bottom: 10px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  font-size: 13px; pointer-events: none; display: none;
+}
+.silent-badge { background: rgb(21 23 29 / .85); color: var(--accent); }
+.deck.silent .silent-badge { display: block; }
+.fail-badge { background: rgb(60 20 24 / .92); color: #ffd6d6; }
+.deck.failed .fail-badge { display: block; }
+.deck.failed { border-top-color: var(--danger); }
+
+.progress {
+  position: relative;
+  height: 26px;
+  background: #171a22;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  overflow: hidden;
+}
+.progress-fill {
+  position: absolute; inset: 0 auto 0 0;
+  width: 0;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-right: 2px solid var(--accent);
+}
+.deck.ending .progress-fill { animation: ending 1s steps(2) infinite; }
+@keyframes ending { 50% { background: color-mix(in srgb, var(--danger) 40%, transparent); } }
+.marks { position: absolute; inset: 0; pointer-events: none; }
+.mark { position: absolute; top: 0; bottom: 0; width: 2px; }
+.mark.cue { background: var(--ink); }
+.mark.hot { background: var(--accent); opacity: .8; }
+.mark.hot::after {
+  content: attr(data-n);
+  position: absolute; top: 2px; left: 4px;
+  font: 600 11px/1 var(--display);
+  color: var(--accent);
+}
+
+.time {
+  display: flex; justify-content: space-between;
+  font: 600 20px/1 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.time span:last-child { color: var(--muted); }
+
+.transport { display: grid; grid-template-columns: 1fr 1.4fr 1fr 1fr; gap: 8px; }
+.transport button { padding: 12px 0; font: 600 18px/1 var(--display); }
+.transport .play { background: var(--accent); color: #15171d; border-color: transparent; }
+.deck.playing .transport .play { background: transparent; color: var(--accent); border-color: var(--accent); }
+.transport .cue { color: var(--accent); }
+
+.hotcues { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.hot { font: 600 15px/1 var(--display); padding: 10px 0; color: var(--muted); }
+.hot.set { color: #15171d; background: var(--accent); border-color: transparent; }
+
+.sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ctl { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.ctl output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ctl output.snapped { color: var(--danger); }
+.ctl select { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px; }
+
+.bpm-tools { display: grid; grid-template-columns: 1fr 1.2fr 1fr 1fr; gap: 8px; }
+.bpm-tools button { padding: 7px 4px; font-size: 14px; }
+
+.load { display: flex; gap: 8px; }
+.load input, .searchbar input, .settings-form input {
+  flex: 1; min-width: 0;
+  background: #171a22;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+input[type=range] { accent-color: var(--accent, var(--ink)); width: 100%; }
+
+/* ---------- Mezclador ---------- */
+.mixer {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.meters { display: flex; justify-content: center; gap: 14px; height: 120px; }
+.meter {
+  width: 18px; height: 100%;
+  background: #171a22;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex; align-items: flex-end;
+}
+.meter-fill { width: 100%; height: 100%; transform-origin: bottom; transform: scaleY(0); transition: transform .08s linear; }
+.meter.a .meter-fill { background: var(--a); }
+.meter.b .meter-fill { background: var(--b); }
+
+.mixbtn {
+  padding: 14px 10px;
+  font: 700 20px/1 var(--display);
+  background: linear-gradient(90deg, var(--a), var(--b));
+  color: #15171d;
+  border: 0;
+}
+.mixbtn.running { animation: pulse .9s ease-in-out infinite alternate; }
+@keyframes pulse { to { filter: brightness(1.25); } }
+
+.switch { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.switch input { accent-color: var(--b); width: 16px; height: 16px; }
+
+/* ---------- Crossfader: la pieza protagonista ---------- */
+.xfader {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 18%;
+}
+.xf-label { font: 700 28px/1 var(--display); }
+.xf-label.a { color: var(--a); opacity: calc(1 - var(--xf) * .7); }
+.xf-label.b { color: var(--b); opacity: calc(.3 + var(--xf) * .7); }
+#xfader {
+  -webkit-appearance: none; appearance: none;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--a), var(--b));
+  outline-offset: 6px;
+}
+#xfader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 30px; height: 46px;
+  border-radius: 5px;
+  background: #e9ebf1 linear-gradient(90deg, transparent 13px, #15171d 13px 17px, transparent 17px);
+  border: 1px solid #15171d;
+  cursor: grab;
+}
+#xfader::-moz-range-thumb {
+  width: 30px; height: 46px; border-radius: 5px;
+  background: #e9ebf1 linear-gradient(90deg, transparent 13px, #15171d 13px 17px, transparent 17px);
+  border: 1px solid #15171d;
+}
+
+/* ---------- Biblioteca ---------- */
+.library {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  padding: 6px 24px 14px;
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  min-width: 0;
+}
+.panel.drop { box-shadow: 0 0 0 2px var(--b) inset; }
+.panel-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.panel-head h2 { font: 600 22px/1 var(--display); margin: 0; }
+.panel-head .hint { margin: 0; color: var(--muted); font-size: 13px; flex: 1; }
+.panel-head .ghost { margin-left: auto; }
+.count { color: var(--muted); }
+.searchbar { display: flex; gap: 8px; margin-bottom: 10px; }
+
+.tracklist { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+.tracklist li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  cursor: grab;
+}
+.tracklist li:hover { background: var(--panel-2); }
+.tracklist li.empty { color: var(--muted); cursor: default; display: block; padding: 10px 6px; }
+.tracklist li.empty:hover { background: none; }
+.tracklist img { border-radius: 4px; object-fit: cover; flex: none; background: #171a22; }
+.t-meta { flex: 1; min-width: 0; }
+.t-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-sub { color: var(--muted); font-size: 13px; }
+.t-actions { display: flex; gap: 4px; flex: none; }
+.t-actions button { padding: 5px 9px; font-size: 13px; }
+.to.a { color: var(--a); }
+.to.b { color: var(--b); }
+
+/* ---------- Pie, diálogo, avisos ---------- */
+.keys {
+  display: flex; flex-wrap: wrap; gap: 6px 18px;
+  padding: 4px 24px 24px;
+  color: var(--muted); font-size: 13px;
+}
+kbd {
+  font: 600 12px/1 var(--display);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 3px 6px;
+  color: var(--ink);
+}
+
+dialog {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  max-width: 520px;
+  padding: 22px;
+}
+dialog::backdrop { background: rgb(10 12 16 / .7); }
+.settings-form h2 { font: 600 24px/1.1 var(--display); margin: 0 0 8px; }
+.settings-form p { color: var(--muted); margin: 0 0 12px; }
+.settings-form input { width: 100%; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+#toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+.toast {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  transition: opacity .4s;
+}
+.toast.out { opacity: 0; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 1100px) {
+  .console { grid-template-columns: 1fr 1fr; }
+  .mixer { grid-column: 1 / -1; order: 3; display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; }
+  .meters { display: none; }
+  .xfader { order: 2; padding: 10px 6%; }
+}
+@media (max-width: 720px) {
+  .console, .library { grid-template-columns: 1fr; padding-inline: 12px; }
+  .mixer { grid-template-columns: 1fr; }
+  .topbar { padding-inline: 12px; flex-wrap: wrap; }
+  .tagline { order: 3; flex-basis: 100%; }
+  .xfader { padding: 8px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">djBrave</h1>
+    <p class="tagline">Dos decks de YouTube, un crossfader, cero cortes.</p>
+    <button id="btnSettings" class="ghost" type="button">Clave de YouTube</button>
+  </header>
+
+  <div id="fileWarning" class="file-warning" hidden>
+    Abriste djBrave como archivo local (<code>file://</code>). La interfaz y la búsqueda funcionan, pero YouTube bloquea la reproducción fuera de una página web.
+    Ábrelo desde <a id="pagesLink" href="https://csav20.github.io/djBrave/">csav20.github.io/djBrave</a>.
+  </div>
+
+  <main class="console">
+    <section class="deck" id="deckA" data-deck="A" aria-label="Deck A"></section>
+
+    <section class="mixer" aria-label="Mezclador">
+      <div class="meters" aria-hidden="true">
+        <div class="meter a"><div class="meter-fill" id="meterA"></div></div>
+        <div class="meter b"><div class="meter-fill" id="meterB"></div></div>
+      </div>
+
+      <label class="ctl">Master
+        <input type="range" id="master" min="0" max="100" value="90">
+      </label>
+
+      <label class="ctl">Curva del crossfader
+        <select id="curve">
+          <option value="smooth">Suave (potencia constante)</option>
+          <option value="linear">Lineal</option>
+          <option value="cut">Corte rápido (scratch)</option>
+        </select>
+      </label>
+
+      <label class="ctl">Duración de la mezcla <output id="mixlenOut">12 s</output>
+        <input type="range" id="mixlen" min="2" max="40" value="12">
+      </label>
+
+      <button id="btnMix" class="mixbtn" type="button">Mezclar al otro deck</button>
+
+      <label class="switch"><input type="checkbox" id="autodj"> Auto‑DJ con la cola</label>
+      <label class="switch"><input type="checkbox" id="autopause" checked> Pausar el deck que sale</label>
+    </section>
+
+    <section class="deck" id="deckB" data-deck="B" aria-label="Deck B"></section>
+
+    <div class="xfader" aria-label="Crossfader">
+      <span class="xf-label a">A</span>
+      <input type="range" id="xfader" min="0" max="1000" value="0" aria-label="Crossfader A–B">
+      <span class="xf-label b">B</span>
+    </div>
+  </main>
+
+  <section class="library">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Buscar</h2>
+        <p class="hint">Busca aquí y la música sigue sonando. No necesita clave.</p>
+      </div>
+      <form id="searchForm" class="searchbar" autocomplete="off">
+        <input id="q" type="search" placeholder="Artista, canción o enlace de YouTube  ( / )">
+        <button type="submit">Buscar</button>
+      </form>
+      <ul id="results" class="tracklist"></ul>
+    </div>
+
+    <div class="panel" id="queuePanel">
+      <div class="panel-head">
+        <h2>Cola <span id="qcount" class="count"></span></h2>
+        <button id="qclear" class="ghost" type="button">Vaciar cola</button>
+      </div>
+      <ul id="queue" class="tracklist"></ul>
+    </div>
+  </section>
+
+  <footer class="keys">
+    <span><kbd>Q</kbd> play A</span><span><kbd>W</kbd> cue A</span><span><kbd>1</kbd>–<kbd>4</kbd> hot cues A</span>
+    <span><kbd>O</kbd> play B</span><span><kbd>P</kbd> cue B</span><span><kbd>7</kbd>–<kbd>0</kbd> hot cues B</span>
+    <span><kbd>←</kbd><kbd>→</kbd> crossfader</span><span><kbd>Espacio</kbd> mezclar</span><span><kbd>/</kbd> buscar</span>
+  </footer>
+
+  <dialog id="settings">
+    <form method="dialog" class="settings-form">
+      <h2>Clave de YouTube Data API</h2>
+      <p>Opcional. Buscar ya funciona sin clave usando servicios públicos (Piped e Invidious). La clave oficial da resultados más estables.</p>
+      <p>Créala en <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a> y restríngela a tu dominio (por ejemplo <code>http://localhost:5173/*</code>). Se guarda solo en este navegador.</p>
+      <input id="apiKey" type="password" placeholder="AIza…" autocomplete="off">
+      <div class="dialog-actions">
+        <button value="cancel" class="ghost">Cancelar</button>
+        <button value="save" id="saveKey">Guardar clave</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toasts" aria-live="polite"></div>
+  <script>
+// djBrave — todo en un solo archivo: ábrelo desde GitHub Pages o cualquier servidor web.
+(() => {
+"use strict";
+/* ================= ui.js ================= */
+// Utilidades de interfaz: avisos y almacenamiento local seguro.
+function toast(msg, ms = 2600) {
+  const box = document.getElementById('toasts');
+  if (!box) return;
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  box.appendChild(t);
+  setTimeout(() => t.classList.add('out'), ms);
+  setTimeout(() => t.remove(), ms + 400);
+}
+
+const store = {
+  get(key, fallback) {
+    try {
+      const v = localStorage.getItem(key);
+      return v == null ? fallback : JSON.parse(v);
+    } catch { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* sin almacenamiento */ }
+  },
+};
+
+function esc(s = '') {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ================= youtube.js ================= */
+// Carga del IFrame API de YouTube y utilidades de enlaces.
+let apiPromise;
+
+function loadYouTubeAPI() {
+  if (apiPromise) return apiPromise;
+  apiPromise = new Promise(resolve => {
+    if (window.YT && window.YT.Player) return resolve(window.YT);
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { prev?.(); resolve(window.YT); };
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(s);
+  });
+  return apiPromise;
+}
+
+function parseVideoId(input = '') {
+  const s = input.trim().split(/\s+/)[0] || '';
+  if (/^[\w-]{11}$/.test(s)) return s;
+  try {
+    const u = new URL(s);
+    if (u.hostname.endsWith('youtu.be')) return u.pathname.slice(1, 12) || null;
+    const v = u.searchParams.get('v');
+    if (v && /^[\w-]{11}$/.test(v)) return v;
+    const m = u.pathname.match(/\/(embed|shorts|live|v)\/([\w-]{11})/);
+    if (m) return m[2];
+  } catch { /* no es URL */ }
+  return null;
+}
+
+async function fetchTitle(id) {
+  // oEmbed público de YouTube (sin clave). Si falla, devolvemos null.
+  try {
+    const r = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent('https://www.youtube.com/watch?v=' + id)}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return { title: j.title, channel: j.author_name };
+  } catch { return null; }
+}
+
+function fmt(t) {
+  if (!isFinite(t) || t < 0) t = 0;
+  const m = Math.floor(t / 60), s = Math.floor(t % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/* ================= search.js ================= */
+// Búsqueda de YouTube SIN clave mediante instancias públicas de Piped e Invidious
+// (proyectos open source que exponen la búsqueda de YouTube con CORS abierto).
+// Si guardas una clave de YouTube Data API, se usa primero.
+const decoder = document.createElement('textarea');
+const decode = s => { decoder.innerHTML = s || ''; return decoder.value; };
+
+const PROVIDERS = [
+  { kind: 'piped', base: 'https://api.piped.private.coffee' },
+  { kind: 'invidious', base: 'https://invidious.f5.si' },
+  { kind: 'invidious', base: 'https://iv.melmac.space' },
+  { kind: 'piped', base: 'https://pipedapi.kavin.rocks' },
+  { kind: 'piped', base: 'https://pipedapi.adminforge.de' },
+  { kind: 'invidious', base: 'https://yewtu.be' },
+  { kind: 'invidious', base: 'https://inv.nadeko.net' },
+];
+
+async function getJSON(url, ms = 7000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+async function viaProvider(p, q) {
+  const enc = encodeURIComponent(q);
+  if (p.kind === 'piped') {
+    const j = await getJSON(`${p.base}/search?q=${enc}&filter=videos`);
+    return (j.items || [])
+      .filter(it => it.type === 'stream' && it.url)
+      .map(it => ({
+        id: new URLSearchParams(it.url.split('?')[1]).get('v'),
+        title: it.title,
+        channel: it.uploaderName,
+        duration: it.duration,
+      }))
+      .filter(t => t.id);
+  }
+  const j = await getJSON(`${p.base}/api/v1/search?q=${enc}&type=video`);
+  if (!Array.isArray(j)) throw new Error('respuesta inválida');
+  return j.filter(it => it.type === 'video' && it.videoId).map(it => ({
+    id: it.videoId,
+    title: it.title,
+    channel: it.author,
+    duration: it.lengthSeconds,
+  }));
+}
+
+async function viaApiKey(q, key) {
+  const url = new URL('https://www.googleapis.com/youtube/v3/search');
+  url.search = new URLSearchParams({ part: 'snippet', type: 'video', videoEmbeddable: 'true', maxResults: '20', q, key });
+  const r = await fetch(url);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j?.error?.message || `HTTP ${r.status}`);
+  return (j.items || []).map(it => ({
+    id: it.id.videoId,
+    title: decode(it.snippet.title),
+    channel: decode(it.snippet.channelTitle),
+  }));
+}
+
+let preferred = 0; // recuerda la última instancia que respondió
+
+async function searchYouTube(q, key) {
+  if (key) {
+    try { return { items: await viaApiKey(q, key), source: 'YouTube API' }; }
+    catch (e) { console.warn('API de YouTube falló, uso instancias públicas:', e.message); }
+  }
+  const order = [...PROVIDERS.slice(preferred), ...PROVIDERS.slice(0, preferred)];
+  const errors = [];
+  for (const p of order) {
+    try {
+      const items = (await viaProvider(p, q)).slice(0, 20);
+      if (!items.length) throw new Error('sin resultados');
+      preferred = PROVIDERS.indexOf(p);
+      return { items, source: new URL(p.base).hostname };
+    } catch (e) { errors.push(`${new URL(p.base).hostname}: ${e.message}`); }
+  }
+  throw new Error('ningún servicio de búsqueda respondió (' + errors.length + ' probados)');
+}
+
+/* ================= deck.js ================= */
+// Un deck = un reproductor de YouTube con transporte, cue, hot cues, tempo y tap BPM.
+
+const ERRORS = {
+  2: 'el enlace no es un video válido',
+  5: 'el reproductor HTML5 falló',
+  100: 'el video no existe o es privado',
+  101: 'el autor no permite reproducirlo fuera de YouTube',
+  150: 'el autor no permite reproducirlo fuera de YouTube',
+  152: 'el autor no permite reproducirlo fuera de YouTube',
+  153: 'YouTube no reproduce en páginas abiertas como archivo (file://); ábrelo desde GitHub Pages',
+};
+
+class Deck extends EventTarget {
+  constructor(id, root) {
+    super();
+    this.id = id;
+    this.root = root;
+    this.player = null;
+    this.ready = false;
+    this.state = -1;
+    this.track = null;
+    this.gain = 1;
+    this.output = 0;
+    this.cuePoint = 0;
+    this.hotcues = [null, null, null, null];
+    this.taps = [];
+    this.baseBpm = null;   // BPM medido normalizado a tempo 1.0×
+    this.wantRate = 1;
+    this.rate = 1;
+    this.armed = false;    // pista precargada por el Auto-DJ
+    this.played = false;   // la pista actual ya sonó alguna vez
+    this.failed = false;   // la pista no se puede reproducir embebida
+    this.rates = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+    this.watchdog = null;
+    this._dur = 0;
+    this.el = {};
+    this.render();
+    this.bind();
+  }
+
+  render() {
+    const hot = [0, 1, 2, 3].map(i => `<button type="button" class="hot" data-hot="${i}" title="Clic: marcar o saltar · Mayús+clic: borrar">${i + 1}</button>`).join('');
+    this.root.innerHTML = `
+      <div class="deck-head">
+        <span class="deck-letter">${this.id}</span>
+        <div class="deck-meta">
+          <div class="deck-title" data-el="title">Deck vacío</div>
+          <div class="deck-sub" data-el="sub">Pega un enlace, arrastra uno aquí o elige desde Buscar</div>
+        </div>
+        <div class="deck-bpm"><strong data-el="bpm">—</strong><span>BPM</span></div>
+      </div>
+      <div class="video-wrap">
+        <div data-el="player"></div>
+        <button type="button" class="video-shield" data-act="play" aria-label="Reproducir o pausar" tabindex="-1"></button>
+        <span class="silent-badge">Sonando en silencio: mueve el crossfader hacia ${this.id}</span>
+        <span class="fail-badge" data-el="fail"></span>
+      </div>
+      <div class="progress" data-el="progress" title="Clic para saltar">
+        <div class="progress-fill" data-el="fill"></div>
+        <div class="marks" data-el="marks"></div>
+      </div>
+      <div class="time"><span data-el="pos">0:00</span><span data-el="remain">-0:00</span></div>
+      <div class="transport">
+        <button type="button" class="cue" data-act="cue" title="En pausa: fija el CUE · Sonando: vuelve al CUE">CUE</button>
+        <button type="button" class="play" data-act="play" data-el="playBtn" aria-label="Reproducir">▶</button>
+        <button type="button" data-act="back" title="Retroceder 4 tiempos (o 2 s)">◀◀</button>
+        <button type="button" data-act="fwd" title="Avanzar 4 tiempos (o 2 s)">▶▶</button>
+      </div>
+      <div class="hotcues">${hot}</div>
+      <div class="sliders">
+        <label class="ctl">Tempo <output data-el="rateOut">1.00×</output>
+          <input type="range" data-el="rate" min="0.75" max="1.25" step="0.25" value="1" title="YouTube solo permite pasos de 0.25× · Doble clic: 1.00×">
+        </label>
+        <label class="ctl">Ganancia
+          <input type="range" data-el="gain" min="0" max="100" value="100">
+        </label>
+      </div>
+      <div class="bpm-tools">
+        <button type="button" data-act="nudgeBack" title="Retrasa el pulso ~40 ms para cuadrar los golpes">Nudge −</button>
+        <button type="button" data-act="tap" title="Toca al ritmo, mínimo 4 veces">Tap BPM</button>
+        <button type="button" data-act="nudgeFwd" title="Adelanta el pulso ~40 ms para cuadrar los golpes">Nudge +</button>
+        <button type="button" data-act="sync" title="Ajusta al tempo más cercano permitido por YouTube">Sync</button>
+      </div>
+      <form class="load" data-el="loadForm">
+        <input data-el="url" placeholder="Enlace o ID de YouTube" autocomplete="off">
+        <button type="submit">Cargar</button>
+      </form>`;
+    this.root.querySelectorAll('[data-el]').forEach(n => { this.el[n.dataset.el] = n; });
+  }
+
+  bind() {
+    this.root.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b || b.type === 'submit') return;
+      if (b.dataset.act) this.action(b.dataset.act);
+      if (b.dataset.hot !== undefined) this.hotcue(+b.dataset.hot, e.shiftKey);
+    });
+    this.el.loadForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const id = parseVideoId(this.el.url.value);
+      if (!id) return toast('Ese texto no parece un enlace de YouTube');
+      this.load({ id });
+      this.el.url.value = '';
+    });
+    this.el.rate.addEventListener('input', () => this.setRate(+this.el.rate.value));
+    this.el.rate.addEventListener('dblclick', () => this.setRate(1));
+    this.el.gain.addEventListener('input', () => {
+      this.gain = this.el.gain.value / 100;
+      this.dispatchEvent(new Event('gain'));
+    });
+    this.el.progress.addEventListener('click', e => {
+      const r = this.el.progress.getBoundingClientRect();
+      this.seek(((e.clientX - r.left) / r.width) * this.duration());
+    });
+
+    // Arrastrar y soltar: desde la lista de djBrave o un enlace desde otra pestaña de Brave
+    this.root.addEventListener('dragover', e => { e.preventDefault(); this.root.classList.add('drop'); });
+    this.root.addEventListener('dragleave', e => { if (!this.root.contains(e.relatedTarget)) this.root.classList.remove('drop'); });
+    this.root.addEventListener('drop', e => {
+      e.preventDefault();
+      this.root.classList.remove('drop');
+      const json = e.dataTransfer.getData('application/x-djbrave-track');
+      if (json) return this.load(JSON.parse(json));
+      const text = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+      const id = parseVideoId(text);
+      id ? this.load({ id }) : toast('Ese enlace no es de un video de YouTube');
+    });
+  }
+
+  ensurePlayer() {
+    if (this.playerReady) return this.playerReady;
+    this.playerReady = loadYouTubeAPI().then(YT => new Promise(resolve => {
+      this.player = new YT.Player(this.el.player, {
+        width: '100%',
+        height: '100%',
+        playerVars: { autoplay: 0, controls: 0, disablekb: 1, rel: 0, playsinline: 1, iv_load_policy: 3, origin: location.origin },
+        events: {
+          onReady: () => {
+            this.ready = true;
+            this.player.setVolume(Math.round(this.output));
+            const r = this.player.getAvailablePlaybackRates?.();
+            if (r?.length) this.rates = [...r].sort((a, b) => a - b);
+            const usable = this.rates.filter(x => x >= 0.5 && x <= 1.5);
+            this.el.rate.min = usable[0];
+            this.el.rate.max = usable.at(-1);
+            const steps = usable.slice(1).map((x, i) => +(x - usable[i]).toFixed(3));
+            this.el.rate.step = Math.min(...steps) || 0.25;
+            resolve();
+          },
+          onStateChange: e => this.onState(e.data),
+          onPlaybackRateChange: e => this.onRate(e.data),
+          onError: e => this.onError(e.data),
+        },
+      });
+    }));
+    return this.playerReady;
+  }
+
+  async load(track, { autoplay = false } = {}) {
+    if (!track?.id) return;
+    await this.ensurePlayer();
+    this.track = { ...track };
+    this.cuePoint = 0;
+    this.hotcues = [null, null, null, null];
+    this.taps = [];
+    this.baseBpm = track.bpm || null;
+    this.armed = false;
+    this.played = false;
+    this.failed = false;
+    this.el.fail.textContent = '';
+    this.root.classList.remove('failed');
+    this._dur = 0;
+    const opts = { videoId: track.id, startSeconds: 0 };
+    autoplay ? this.player.loadVideoById(opts) : this.player.cueVideoById(opts);
+    if (autoplay) this.armWatchdog();
+    this.root.classList.add('loaded');
+    this.el.title.textContent = track.title || 'Cargando…';
+    this.el.sub.textContent = track.channel || '';
+    this.updateBpm();
+    this.drawMarks();
+    if (!track.title) {
+      const info = await fetchTitle(track.id);
+      if (info && this.track?.id === track.id) {
+        Object.assign(this.track, info);
+        this.el.title.textContent = info.title;
+        this.el.sub.textContent = info.channel || '';
+      }
+    }
+    this.dispatchEvent(new CustomEvent('loaded', { detail: this.track }));
+  }
+
+  action(act) {
+    switch (act) {
+      case 'play': return this.toggle();
+      case 'cue': return this.cue();
+      case 'back': return this.jump(-1);
+      case 'fwd': return this.jump(1);
+      case 'tap': return this.tap();
+      case 'sync': return this.dispatchEvent(new Event('sync'));
+      case 'nudgeBack': return this.nudge(-1);
+      case 'nudgeFwd': return this.nudge(1);
+    }
+  }
+
+  // ---- estado ----
+  isPlaying() { return this.state === 1 || this.state === 3; }
+  time() { return this.ready ? this.player.getCurrentTime() || 0 : 0; }
+  duration() { return this.ready ? this.player.getDuration() || 0 : 0; }
+  remaining() { return this.duration() - this.time(); }
+  bpm() { return this.baseBpm ? this.baseBpm * this.rate : null; }
+
+  // ---- transporte ----
+  play() {
+    if (!this.track) return toast(`Deck ${this.id} está vacío: carga una pista primero`);
+    if (this.failed) return toast(`Deck ${this.id}: esta pista no se puede reproducir aquí, carga otra versión`);
+    this.player?.playVideo();
+    this.armWatchdog();
+  }
+
+  // Algunos videos de sellos no arrancan embebidos y YouTube no avisa: lo detectamos nosotros.
+  armWatchdog(ms = 7000) {
+    clearTimeout(this.watchdog);
+    this.watchdog = setTimeout(() => {
+      if (this.state === 1 || this.state === 2) return;
+      this.markFailed('el video no arrancó (suele pasar con videos oficiales de sellos)');
+    }, ms);
+  }
+
+  markFailed(reason) {
+    this.failed = true;
+    this.armed = false;
+    this.root.classList.add('failed');
+    this.el.fail.textContent = `No se puede reproducir aquí: ${reason}. Prueba la versión «lyrics» o «audio».`;
+    toast(`Deck ${this.id}: ${reason}`, 4200);
+    this.dispatchEvent(new CustomEvent('error', { detail: reason }));
+  }
+  pause() { if (this.ready) this.player.pauseVideo(); }
+  toggle() { this.isPlaying() ? this.pause() : this.play(); }
+  seek(t) { if (this.ready && this.track) this.player.seekTo(Math.max(0, Math.min(t, this.duration() - 0.5)), true); }
+
+  jump(dir) {
+    const step = this.bpm() ? (60 / this.bpm()) * 4 * this.rate : 2; // 4 tiempos en segundos de la pista
+    this.seek(this.time() + dir * step);
+  }
+
+  cue() {
+    if (!this.track) return;
+    if (this.isPlaying()) {
+      this.pause();
+      this.seek(this.cuePoint);
+    } else {
+      this.cuePoint = this.time();
+      toast(`Deck ${this.id}: CUE fijado en ${fmt(this.cuePoint)}`, 1500);
+    }
+    this.drawMarks();
+  }
+
+  hotcue(i, clear = false) {
+    if (!this.track) return;
+    if (clear) this.hotcues[i] = null;
+    else if (this.hotcues[i] == null) this.hotcues[i] = this.time();
+    else { this.seek(this.hotcues[i]); if (!this.isPlaying()) this.play(); }
+    this.drawMarks();
+  }
+
+  // ---- tempo y BPM ----
+  nearestRate(r) {
+    const usable = this.rates.filter(x => x >= 0.5 && x <= 1.5);
+    return usable.reduce((a, b) => (Math.abs(b - r) < Math.abs(a - r) ? b : a), 1);
+  }
+
+  // Nudge: acelera o frena un instante para cuadrar golpes sin saltar (como el jog de un CDJ)
+  nudge(dir) {
+    if (!this.ready || !this.isPlaying()) return;
+    const bump = this.rates.find(x => x > this.wantRate) ?? this.wantRate;
+    const drop = [...this.rates].reverse().find(x => x < this.wantRate) ?? this.wantRate;
+    const target = dir > 0 ? bump : drop;
+    if (target === this.wantRate) return;
+    const ms = Math.min(400, 40 / Math.abs(target - this.wantRate)); // ~40 ms de desfase
+    this.player.setPlaybackRate(target);
+    clearTimeout(this._nudge);
+    this._nudge = setTimeout(() => this.player.setPlaybackRate(this.wantRate), ms);
+  }
+
+  setRate(r) {
+    this.wantRate = this.nearestRate(r);
+    this.el.rate.value = this.wantRate;
+    if (this.ready) this.player.setPlaybackRate(this.wantRate);
+    this.el.rateOut.textContent = `${this.wantRate.toFixed(2)}×`;
+  }
+
+  onRate(r) {
+    // YouTube puede redondear al valor soportado más cercano: mostramos el real.
+    this.rate = r;
+    this.el.rateOut.textContent = `${r.toFixed(2)}×`;
+    this.el.rateOut.classList.toggle('snapped', Math.abs(r - this.wantRate) > 0.004);
+    this.updateBpm();
+  }
+
+  tap() {
+    const now = performance.now();
+    if (this.taps.length && now - this.taps.at(-1) > 2000) this.taps = [];
+    this.taps.push(now);
+    if (this.taps.length > 8) this.taps.shift();
+    if (this.taps.length >= 4) {
+      const interval = (this.taps.at(-1) - this.taps[0]) / (this.taps.length - 1);
+      this.baseBpm = 60000 / interval / this.rate;
+    }
+    this.updateBpm();
+  }
+
+  updateBpm() {
+    const b = this.bpm();
+    this.el.bpm.textContent = b ? b.toFixed(1) : (this.taps.length ? `${this.taps.length}/4` : '—');
+  }
+
+  // ---- salida de audio (la controla el mezclador) ----
+  setOutput(v) {
+    this.output = v;
+    if (this.ready) {
+      if (this.player.isMuted()) this.player.unMute();
+      this.player.setVolume(Math.round(v));
+    }
+  }
+
+  // ---- eventos del reproductor ----
+  onState(s) {
+    this.state = s;
+    const playing = s === 1;
+    if (playing) { this.played = true; clearTimeout(this.watchdog); }
+    this.root.classList.toggle('playing', playing);
+    this.el.playBtn.textContent = playing ? '❚❚' : '▶';
+    this.el.playBtn.setAttribute('aria-label', playing ? 'Pausar' : 'Reproducir');
+    if (playing && Math.abs(this.player.getPlaybackRate() - this.wantRate) > 0.004) {
+      this.player.setPlaybackRate(this.wantRate); // YouTube reinicia el tempo al cambiar de video
+    }
+    if (s === 0) this.dispatchEvent(new Event('ended'));
+  }
+
+  onError(code) {
+    clearTimeout(this.watchdog);
+    this.markFailed(ERRORS[code] || `error ${code}`);
+  }
+
+  // Lista para entrar en una mezcla: cargada, sin fallas y aún sin sonar
+  get fresh() { return !!this.track && !this.played && !this.failed; }
+
+  tick() {
+    if (!this.ready || !this.track) return;
+    const t = this.time(), d = this.duration();
+    this.el.pos.textContent = fmt(t);
+    this.el.remain.textContent = `-${fmt(d - t)}`;
+    this.el.fill.style.width = d ? `${(t / d) * 100}%` : '0%';
+    this.root.classList.toggle('ending', this.isPlaying() && d > 0 && d - t < 30);
+    this.root.classList.toggle('silent', this.isPlaying() && this.output < 3);
+    if (d && d !== this._dur) { this._dur = d; this.drawMarks(); }
+    if (!this.track.title) {
+      const title = this.player.getVideoData?.()?.title;
+      if (title) { this.track.title = title; this.el.title.textContent = title; }
+    }
+  }
+
+  drawMarks() {
+    const d = this._dur || this.duration();
+    const pct = t => `${(t / d) * 100}%`;
+    let html = '';
+    if (d) {
+      html += `<i class="mark cue" style="left:${pct(this.cuePoint)}"></i>`;
+      this.hotcues.forEach((t, i) => { if (t != null) html += `<i class="mark hot" style="left:${pct(t)}" data-n="${i + 1}"></i>`; });
+    }
+    this.el.marks.innerHTML = html;
+    this.root.querySelectorAll('.hot').forEach((b, i) => b.classList.toggle('set', this.hotcues[i] != null));
+  }
+
+  get label() { return esc(this.track?.title || this.track?.id || ''); }
+}
+
+/* ================= mixer.js ================= */
+// Mezclador: crossfader con curvas, master y transiciones automáticas.
+// El audio de YouTube vive dentro de un iframe aislado, así que mezclamos por volumen.
+const CURVES = {
+  smooth: x => [Math.cos((x * Math.PI) / 2), Math.sin((x * Math.PI) / 2)], // potencia constante
+  linear: x => [1 - x, x],
+  cut: x => [x > 0.94 ? (1 - x) / 0.06 : 1, x < 0.06 ? x / 0.06 : 1],      // estilo scratch
+};
+
+class Mixer {
+  constructor(deckA, deckB) {
+    this.A = deckA;
+    this.B = deckB;
+    this.x = 0;          // 0 = todo A, 1 = todo B
+    this.curve = 'smooth';
+    this.master = 0.9;
+    this.timer = null;
+    this.transitioning = false;
+    this.onChange = null;
+  }
+
+  get crossfader() { return this.x; }
+  set crossfader(x) {
+    this.x = Math.min(1, Math.max(0, x));
+    this.apply();
+    this.onChange?.(this.x);
+  }
+
+  levels() {
+    const [ga, gb] = CURVES[this.curve](this.x);
+    return { A: 100 * this.master * this.A.gain * ga, B: 100 * this.master * this.B.gain * gb };
+  }
+
+  apply() {
+    const l = this.levels();
+    this.A.setOutput(l.A);
+    this.B.setOutput(l.B);
+  }
+
+  // Usa setInterval (no requestAnimationFrame) para que la mezcla siga
+  // avanzando aunque la pestaña de Brave quede en segundo plano.
+  fadeTo(target, ms) {
+    this.cancel();
+    const start = this.x;
+    const t0 = performance.now();
+    this.transitioning = true;
+    return new Promise(resolve => {
+      this.timer = setInterval(() => {
+        const k = Math.min(1, (performance.now() - t0) / ms);
+        const eased = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        this.crossfader = start + (target - start) * eased;
+        if (k >= 1) {
+          clearInterval(this.timer);
+          this.timer = null;
+          this.transitioning = false;
+          resolve(true);
+        }
+      }, 40);
+      this._resolve = resolve;
+    });
+  }
+
+  cancel() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    if (this.transitioning) { this.transitioning = false; this._resolve?.(false); }
+  }
+}
+
+/* ================= library.js ================= */
+// Biblioteca: resultados de búsqueda + cola persistente.
+
+const QKEY = 'djbrave.queue';
+const KKEY = 'djbrave.ytkey';
+
+class Library {
+  constructor({ onLoad }) {
+    this.onLoad = onLoad;
+    this.queue = store.get(QKEY, []);
+    this.results = [];
+    this.$results = document.getElementById('results');
+    this.$queue = document.getElementById('queue');
+    this.$count = document.getElementById('qcount');
+    this.bind();
+    this.renderResults();
+    this.renderQueue();
+  }
+
+  get apiKey() { return store.get(KKEY, ''); }
+  set apiKey(v) { store.set(KKEY, (v || '').trim()); }
+
+  bind() {
+    document.getElementById('searchForm').addEventListener('submit', e => {
+      e.preventDefault();
+      this.search(document.getElementById('q').value);
+    });
+    document.getElementById('qclear').addEventListener('click', () => {
+      this.queue = [];
+      this.saveQueue();
+    });
+
+    const handle = (list, source) => list.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      const i = +b.closest('li').dataset.i;
+      const track = source()[i];
+      if (b.dataset.to) this.onLoad(track, b.dataset.to);
+      if (b.dataset.add) this.enqueue(track);
+      if (b.dataset.rm) { this.queue.splice(i, 1); this.saveQueue(); }
+      if (b.dataset.up && i > 0) { [this.queue[i - 1], this.queue[i]] = [this.queue[i], this.queue[i - 1]]; this.saveQueue(); }
+    });
+    handle(this.$results, () => this.results);
+    handle(this.$queue, () => this.queue);
+
+    const drag = (list, source) => list.addEventListener('dragstart', e => {
+      const li = e.target.closest('li[data-i]');
+      if (!li) return;
+      const t = source()[+li.dataset.i];
+      e.dataTransfer.setData('application/x-djbrave-track', JSON.stringify(t));
+      e.dataTransfer.setData('text/plain', `https://www.youtube.com/watch?v=${t.id}`);
+    });
+    drag(this.$results, () => this.results);
+    drag(this.$queue, () => this.queue);
+
+    // Soltar enlaces (por ejemplo desde otra pestaña de Brave con YouTube) en la cola
+    const panel = document.getElementById('queuePanel');
+    panel.addEventListener('dragover', e => { e.preventDefault(); panel.classList.add('drop'); });
+    panel.addEventListener('dragleave', e => { if (!panel.contains(e.relatedTarget)) panel.classList.remove('drop'); });
+    panel.addEventListener('drop', async e => {
+      e.preventDefault();
+      panel.classList.remove('drop');
+      const json = e.dataTransfer.getData('application/x-djbrave-track');
+      if (json) return this.enqueue(JSON.parse(json));
+      const id = parseVideoId(e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain'));
+      if (!id) return toast('Ese enlace no es de un video de YouTube');
+      const info = await fetchTitle(id);
+      this.enqueue({ id, ...(info || {}) });
+    });
+  }
+
+  async search(q) {
+    q = q.trim();
+    if (!q) return;
+    // Varios enlaces pegados de una vez → todos a la cola
+    const many = [...new Set([...q.matchAll(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/g)].map(m => m[1]))];
+    if (many.length > 1) {
+      for (const vid of many) {
+        const info = await fetchTitle(vid);
+        this.queue.push({ id: vid, ...(info || {}) });
+      }
+      this.saveQueue();
+      document.getElementById('q').value = '';
+      return toast(`${many.length} pistas agregadas a la cola`);
+    }
+    const id = parseVideoId(q);
+    if (id) {
+      const info = await fetchTitle(id);
+      this.results = [{ id, title: info?.title || id, channel: info?.channel || 'Enlace directo' }];
+      return this.renderResults();
+    }
+    this.$results.innerHTML = '<li class="empty">Buscando…</li>';
+    try {
+      const { items, source } = await searchYouTube(q, this.apiKey);
+      this.results = items;
+      this.renderResults();
+      this.$results.insertAdjacentHTML('beforeend', `<li class="empty source">Resultados vía ${esc(source)}</li>`);
+    } catch (err) {
+      this.$results.innerHTML = `<li class="empty">La búsqueda falló: ${esc(err.message)}.
+        Prueba de nuevo en unos segundos, agrega tu clave en «Clave de YouTube», o
+        <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener">busca en otra pestaña</a>
+        y arrastra el video a un deck.</li>`;
+    }
+  }
+
+  row(t, i, kind) {
+    const thumb = t.thumb || `https://i.ytimg.com/vi/${t.id}/default.jpg`;
+    const extra = kind === 'queue'
+      ? `<button type="button" data-up="1" title="Subir en la cola" aria-label="Subir">↑</button><button type="button" data-rm="1" title="Quitar de la cola" aria-label="Quitar">✕</button>`
+      : `<button type="button" data-add="1" title="Agregar a la cola">+ Cola</button>`;
+    return `<li draggable="true" data-i="${i}">
+      <img src="${esc(thumb)}" alt="" loading="lazy" width="64" height="48">
+      <div class="t-meta"><div class="t-title">${esc(t.title || t.id)}</div><div class="t-sub">${esc(t.channel || '')}${t.duration ? ' · ' + fmt(t.duration) : ''}</div></div>
+      <div class="t-actions">
+        <button type="button" class="to a" data-to="A" title="Cargar en deck A">A</button>
+        <button type="button" class="to b" data-to="B" title="Cargar en deck B">B</button>
+        ${extra}
+      </div></li>`;
+  }
+
+  renderResults() {
+    this.$results.innerHTML = this.results.length
+      ? this.results.map((t, i) => this.row(t, i, 'results')).join('')
+      : '<li class="empty">Escribe un tema o pega un enlace. Arrastra cualquier resultado a un deck.</li>';
+  }
+
+  renderQueue() {
+    this.$count.textContent = this.queue.length ? this.queue.length : '';
+    this.$queue.innerHTML = this.queue.length
+      ? this.queue.map((t, i) => this.row(t, i, 'queue')).join('')
+      : '<li class="empty">La cola está vacía. Con Auto‑DJ activo, djBrave toma de aquí la siguiente pista y la mezcla sola.</li>';
+  }
+
+  enqueue(t) {
+    this.queue.push(t);
+    this.saveQueue();
+    toast(`En cola: ${t.title || t.id}`, 1600);
+  }
+
+  next() {
+    const t = this.queue.shift();
+    this.saveQueue();
+    return t;
+  }
+
+  saveQueue() {
+    store.set(QKEY, this.queue);
+    this.renderQueue();
+  }
+}
+
+/* ================= app.js ================= */
+// djBrave — punto de entrada: conecta decks, mezclador, biblioteca, Auto-DJ y teclado.
+
+const $ = s => document.querySelector(s);
+
+const A = new Deck('A', $('#deckA'));
+const B = new Deck('B', $('#deckB'));
+const mixer = new Mixer(A, B);
+const deckOf = id => (id === 'A' ? A : B);
+const other = d => (d === A ? B : A);
+
+const settings = store.get('djbrave.settings', { mixLen: 12, autoPause: true, curve: 'smooth', master: 90 });
+const saveSettings = () => store.set('djbrave.settings', settings);
+
+const lib = new Library({ onLoad: (track, id) => deckOf(id).load(track) });
+
+// Aviso si se abrió como archivo local: YouTube exige una página web (error 153)
+if (location.protocol === 'file:') $('#fileWarning').hidden = false;
+
+// ---------- Mezclador ----------
+const xf = $('#xfader');
+const meterA = $('#meterA');
+const meterB = $('#meterB');
+
+mixer.curve = settings.curve;
+mixer.master = settings.master / 100;
+$('#curve').value = settings.curve;
+$('#master').value = settings.master;
+$('#mixlen').value = settings.mixLen;
+$('#mixlenOut').textContent = `${settings.mixLen} s`;
+$('#autopause').checked = settings.autoPause;
+
+mixer.onChange = x => {
+  xf.value = Math.round(x * 1000);
+  const l = mixer.levels();
+  meterA.style.transform = `scaleY(${l.A / 100})`;
+  meterB.style.transform = `scaleY(${l.B / 100})`;
+  document.body.style.setProperty('--xf', x);
+};
+
+xf.addEventListener('input', () => { mixer.cancel(); mixer.crossfader = xf.value / 1000; });
+$('#curve').addEventListener('change', e => { settings.curve = mixer.curve = e.target.value; mixer.crossfader = mixer.x; saveSettings(); });
+$('#master').addEventListener('input', e => { settings.master = +e.target.value; mixer.master = settings.master / 100; mixer.crossfader = mixer.x; saveSettings(); });
+$('#mixlen').addEventListener('input', e => { settings.mixLen = +e.target.value; $('#mixlenOut').textContent = `${settings.mixLen} s`; saveSettings(); });
+$('#autopause').addEventListener('change', e => { settings.autoPause = e.target.checked; saveSettings(); });
+[A, B].forEach(d => d.addEventListener('gain', () => { mixer.crossfader = mixer.x; }));
+mixer.crossfader = 0;
+
+// Crea ambos reproductores de inmediato para que cargar una pista sea instantáneo
+A.ensurePlayer().then(() => mixer.apply());
+B.ensurePlayer().then(() => mixer.apply());
+
+// ---------- Transiciones ----------
+const liveDeck = () => (mixer.x < 0.5 ? A : B);
+
+async function mixToOther() {
+  if (mixer.transitioning) return;
+  const from = liveDeck();
+  const to = other(from);
+  if (!to.track) return toast(`Deck ${to.id} está vacío: carga la siguiente pista ahí`);
+  if (to.failed) return toast(`Deck ${to.id} tiene una pista que no se puede reproducir: carga otra`);
+  if (!to.isPlaying()) to.play();
+  $('#btnMix').classList.add('running');
+  // Espera a que el deck entrante suene de verdad antes de abrir el crossfader
+  const t0 = performance.now();
+  while (to.state !== 1 && !to.failed && performance.now() - t0 < 7000) await new Promise(r => setTimeout(r, 100));
+  if (to.state !== 1) { $('#btnMix').classList.remove('running'); return; }
+  const done = await mixer.fadeTo(to === A ? 0 : 1, settings.mixLen * 1000);
+  $('#btnMix').classList.remove('running');
+  if (done && settings.autoPause && from.isPlaying()) from.pause();
+}
+$('#btnMix').addEventListener('click', mixToOther);
+
+// Sync: iguala el BPM de este deck al del otro
+[A, B].forEach(d => d.addEventListener('sync', () => {
+  const o = other(d);
+  if (!d.baseBpm || !o.bpm()) return toast('Para Sync, marca el BPM con Tap en ambos decks');
+  d.setRate(o.bpm() / d.baseBpm);
+  const got = d.baseBpm * d.wantRate;
+  const diff = Math.abs(got - o.bpm());
+  toast(diff < 1
+    ? `Deck ${d.id} sincronizado a ${got.toFixed(1)} BPM`
+    : `YouTube solo permite pasos de 0.25×: quedó a ${got.toFixed(1)} BPM (objetivo ${o.bpm().toFixed(1)}). Cuadra con Nudge.`, 3800);
+}));
+
+// ---------- Auto-DJ ----------
+const autoDj = $('#autodj');
+
+function autoDjTick() {
+  if (!autoDj.checked || mixer.transitioning) return;
+  const live = liveDeck();
+  const idle = other(live);
+  if (!live.isPlaying()) return;
+  const d = live.duration();
+  const rem = live.remaining();
+  if (!d || !isFinite(rem)) return;
+
+  // Una pista cargada a mano y sin sonar en el deck libre cuenta como la siguiente
+  if (idle.fresh && !idle.isPlaying()) idle.armed = true;
+
+  // 1) Precarga la siguiente pista en el deck libre con margen para que haga buffer
+  if (rem < settings.mixLen + 20 && !idle.armed && !idle.isPlaying() && lib.queue.length) {
+    const next = lib.next();
+    idle.load(next).then(() => { idle.armed = true; });
+    toast(`Auto‑DJ: ${next.title || next.id} preparado en deck ${idle.id}`, 2200);
+  }
+  // 2) Lanza la mezcla cuando quedan "mixLen" segundos
+  if (rem <= settings.mixLen && idle.armed) {
+    idle.armed = false;
+    mixToOther();
+  }
+}
+
+// Si una pista termina sin mezcla, el Auto-DJ arranca la siguiente
+[A, B].forEach(d => d.addEventListener('ended', async () => {
+  if (!autoDj.checked || d !== liveDeck()) return;
+  const o = other(d);
+  if (o.track && !o.isPlaying()) { o.armed = false; mixToOther(); return; }
+  if (lib.queue.length) { await d.load(lib.next(), { autoplay: true }); }
+}));
+
+// Si la pista precargada falla, el Auto-DJ prueba con la siguiente de la cola
+[A, B].forEach(d => d.addEventListener('error', () => {
+  if (!autoDj.checked || d === liveDeck() || !lib.queue.length) return;
+  d.load(lib.next()).then(() => { d.armed = true; });
+}));
+
+// ---------- Bucle de interfaz ----------
+setInterval(() => { A.tick(); B.tick(); autoDjTick(); }, 200);
+
+// ---------- Clave de API ----------
+const dlg = $('#settings');
+$('#btnSettings').addEventListener('click', () => { $('#apiKey').value = lib.apiKey; dlg.showModal(); });
+dlg.addEventListener('close', () => {
+  if (dlg.returnValue === 'save') { lib.apiKey = $('#apiKey').value; toast(lib.apiKey ? 'Clave guardada en este navegador' : 'Clave eliminada'); }
+});
+
+// ---------- Teclado ----------
+const KEYS = {
+  q: () => A.toggle(), w: () => A.cue(),
+  o: () => B.toggle(), p: () => B.cue(),
+  1: () => A.hotcue(0), 2: () => A.hotcue(1), 3: () => A.hotcue(2), 4: () => A.hotcue(3),
+  7: () => B.hotcue(0), 8: () => B.hotcue(1), 9: () => B.hotcue(2), 0: () => B.hotcue(3),
+  ArrowLeft: () => { mixer.cancel(); mixer.crossfader = mixer.x - 0.05; },
+  ArrowRight: () => { mixer.cancel(); mixer.crossfader = mixer.x + 0.05; },
+  ' ': () => mixToOther(),
+  '/': () => $('#q').focus(),
+};
+
+document.addEventListener('keydown', e => {
+  const typing = e.target.matches('input:not([type=range]):not([type=checkbox]), select, textarea');
+  if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+  const fn = KEYS[e.key] || KEYS[e.key.toLowerCase()];
+  if (fn) { e.preventDefault(); fn(); }
+});
+
+window.djBrave = { A, B, mixer, lib }; // acceso desde la consola de Brave para depurar
+
+})();
+</script>
+</body>
+</html>
