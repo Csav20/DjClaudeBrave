@@ -4,7 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DjClaudeBrave — mezclador de YouTube en el navegador</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%2315171d'/%3E%3Ccircle cx='32' cy='32' r='23' fill='none' stroke='%23363d4d' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='16' fill='none' stroke='%23363d4d' stroke-width='2'/%3E%3Cpath d='M32 21a11 11 0 0 0 0 22z' fill='%23f5a524'/%3E%3Cpath d='M32 21a11 11 0 0 1 0 22z' fill='%234fb3ff'/%3E%3Ccircle cx='32' cy='32' r='2.5' fill='%2315171d'/%3E%3C/svg%3E">
+  <meta name="description" content="Mezclador DJ gratis en tu navegador: dos decks de YouTube, crossfader, cola y Auto-DJ sin cortes. Family Open. · Free browser DJ mixer: two YouTube decks, crossfader, queue and gapless Auto-DJ.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="DjClaudeBrave · Family Open">
+  <meta property="og:description" content="Dos decks · Un crossfader · Cero cortes. Gratis, sin instalar. · Two decks · One crossfader · Zero gaps. Free, no install.">
+  <meta property="og:url" content="https://csav20.github.io/DjClaudeBrave/">
+  <meta property="og:image" content="https://csav20.github.io/DjClaudeBrave/assets/social.jpg">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#1b1e26">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -64,8 +75,10 @@ a { color: var(--b); }
   background-clip: text;
   color: transparent;
 }
-body:has(.deck.playing) .brand .logo { animation: spin 1.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.brand .logo { width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 0 0 2px var(--line); }
+/* Mientras suena un deck, el logo late con un anillo ámbar → azul */
+body:has(.deck.playing) .brand .logo { animation: pulse-ring 1s ease-in-out infinite alternate; }
+@keyframes pulse-ring { from { box-shadow: 0 0 0 2px var(--a), 0 0 12px rgb(245 165 36 / .5); } to { box-shadow: 0 0 0 3px var(--b), 0 0 18px rgb(79 179 255 / .6); } }
 .tagline { margin: 0; color: var(--muted); flex: 1; }
 
 /* ---------- Botones ---------- */
@@ -140,7 +153,7 @@ button:active { transform: translateY(1px); }
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
-.video-wrap iframe, .video-wrap > div { width: 100%; height: 100%; display: block; border: 0; }
+.video-wrap iframe, .video-wrap > [data-el="player"] { width: 100%; height: 100%; display: block; border: 0; }
 /* Capa sobre el video: el clic pasa por djBrave y el teclado no se pierde dentro de YouTube */
 .video-shield {
   position: absolute; inset: 0;
@@ -155,8 +168,16 @@ button:active { transform: translateY(1px); }
 }
 .silent-badge { background: rgb(21 23 29 / .85); color: var(--accent); }
 .deck.silent .silent-badge { display: block; }
-.fail-badge { background: rgb(60 20 24 / .92); color: #ffd6d6; }
+.fail-badge { background: rgb(60 20 24 / .94); color: #ffd6d6; pointer-events: auto; z-index: 2; }
 .deck.failed .fail-badge { display: block; }
+.fail-badge p { margin: 0 0 8px; }
+.fail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.fail-actions button { padding: 6px 10px; font-size: 13px; background: rgb(255 255 255 / .1); border-color: rgb(255 255 255 / .25); }
+.fail-ask[hidden] { display: none; }
+.fail-ask { display: flex; gap: 6px; margin: 0 0 8px; }
+.fail-ask input { flex: 1; min-width: 0; padding: 6px 8px; background: #171a22; border: 1px solid rgb(255 255 255 / .25); border-radius: var(--radius-sm); }
+.fail-ask button { padding: 6px 10px; font-size: 13px; }
+.probe { position: fixed; left: -10000px; top: 0; width: 320px; height: 200px; opacity: 0; pointer-events: none; }
 .deck.failed { border-top-color: var(--danger); }
 
 .progress {
@@ -250,6 +271,7 @@ input[type=range] { accent-color: var(--accent, var(--ink)); width: 100%; }
   color: #15171d;
   border: 0;
 }
+.mixbtn.mini { display: none; }
 .mixbtn.running { animation: pulse .9s ease-in-out infinite alternate; }
 @keyframes pulse { to { filter: brightness(1.25); } }
 
@@ -325,6 +347,39 @@ input[type=range] { accent-color: var(--accent, var(--ink)); width: 100%; }
 .to.a { color: var(--a); }
 .to.b { color: var(--b); }
 
+/* ---------- Acciones de cabecera y plugins ---------- */
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.plugins {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;
+  margin: 0 24px 14px;
+}
+.plugins[hidden] { display: none; }
+@media (max-width: 720px) { .plugins { margin-inline: 12px; } }
+
+/* ---------- Créditos ---------- */
+.credits {
+  display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 14px;
+  margin: 4px 24px 12px; padding: 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  font-size: 14px; color: var(--muted);
+}
+.credits p { margin: 0; }
+.credits a { color: var(--ink); }
+.credits strong { color: var(--ink); }
+.family {
+  display: inline-block; margin-bottom: 6px; padding: 3px 10px;
+  border-radius: 999px; background: rgb(0 200 83 / .15); color: #5ee08f;
+  font: 600 15px/1.3 var(--display);
+}
+.coffee { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.coffee-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.credits .paypal-btn {
+  display: inline-block; padding: 8px 14px; border-radius: var(--radius-sm);
+  background: #0070ba; color: #fff; text-decoration: none; font-weight: 600;
+}
+.credits .paypal-btn:hover { background: #005ea6; }
+@media (max-width: 900px) { .credits { grid-template-columns: 1fr; margin-inline: 12px; } }
+
 /* ---------- Pie, diálogo, avisos ---------- */
 .keys {
   display: flex; flex-wrap: wrap; gap: 6px 18px;
@@ -378,6 +433,35 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
   .tagline { order: 3; flex-basis: 100%; }
   .xfader { padding: 8px 0; }
 }
+@media (max-width: 720px) {
+  /* Barra fija: crossfader y Mezclar siempre a mano mientras se maneja cualquier deck */
+  body { padding-bottom: 92px; }
+  .xfader {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    gap: 10px;
+    background: rgb(27 30 38 / .96);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+  .xf-label { font-size: 22px; }
+  .mixbtn.mini { display: block; flex: none; padding: 12px 14px; font-size: 17px; }
+  .mixer #btnMix { display: none; }
+  #toasts { bottom: 100px; width: calc(100% - 24px); }
+  .brand .logo { width: 46px; height: 46px; }
+  .brand { font-size: 30px; }
+}
+@media (max-width: 480px) {
+  .bpm-tools { grid-template-columns: 1fr 1fr; }
+  .bpm-tools [data-act=nudgeFwd] { order: -1; }
+  .bpm-tools [data-act=nudgeBack] { order: -2; }
+  .sliders { gap: 10px; }
+  .deck { padding: 12px; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .keys { display: none; }
+  input[type=range] { min-height: 32px; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -386,9 +470,12 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
 </head>
 <body>
   <header class="topbar">
-    <h1 class="brand"><svg class="logo" viewBox="0 0 64 64" width="38" height="38" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#15171d"/><circle cx="32" cy="32" r="23" fill="none" stroke="#363d4d" stroke-width="2"/><circle cx="32" cy="32" r="16" fill="none" stroke="#363d4d" stroke-width="2"/><path d="M32 21a11 11 0 0 0 0 22z" fill="#f5a524"/><path d="M32 21a11 11 0 0 1 0 22z" fill="#4fb3ff"/><circle cx="32" cy="32" r="2.5" fill="#15171d"/></svg><span>DjClaudeBrave</span></h1>
+    <h1 class="brand"><img class="logo" src="assets/logo.png" alt="" width="52" height="52"><span>DjClaudeBrave</span></h1>
     <p class="tagline">Dos decks de YouTube, un crossfader, cero cortes.</p>
-    <button id="btnSettings" class="ghost" type="button">Clave de YouTube</button>
+    <div class="top-actions">
+      <button id="btnReport" class="ghost" type="button" title="Abre un reporte en GitHub con el diagnóstico ya completado">Reportar un problema</button>
+      <button id="btnSettings" class="ghost" type="button">Clave de YouTube</button>
+    </div>
   </header>
 
   <div id="fileWarning" class="file-warning" hidden>
@@ -425,6 +512,7 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
 
       <label class="switch"><input type="checkbox" id="autodj"> Auto‑DJ con la cola</label>
       <label class="switch"><input type="checkbox" id="autopause" checked> Pausar el deck que sale</label>
+      <label class="switch" title="Si un video está bloqueado fuera de YouTube, busca y carga otra versión que sí se pueda reproducir"><input type="checkbox" id="autoalt" checked> Buscar otra versión si un video está bloqueado</label>
     </section>
 
     <section class="deck" id="deckB" data-deck="B" aria-label="Deck B"></section>
@@ -433,6 +521,7 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
       <span class="xf-label a">A</span>
       <input type="range" id="xfader" min="0" max="1000" value="0" aria-label="Crossfader A–B">
       <span class="xf-label b">B</span>
+      <button type="button" class="mixbtn mini" data-mix aria-label="Mezclar al otro deck">Mezclar</button>
     </div>
   </main>
 
@@ -455,6 +544,25 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
         <button id="qclear" class="ghost" type="button">Vaciar cola</button>
       </div>
       <ul id="queue" class="tracklist"></ul>
+    </div>
+  </section>
+
+  <section id="pluginArea" class="plugins" aria-label="Extensiones" hidden></section>
+
+  <section class="credits" aria-label="Sobre DjClaudeBrave">
+    <div class="credit-block">
+      <span class="family">Family Open</span>
+      <p>Gratis, abierto y para toda la familia. Sin cuentas ni anuncios; tu cola y ajustes se guardan solo en este navegador.</p>
+    </div>
+    <div class="credit-block">
+      <p>Creado por <a href="https://github.com/Csav20" target="_blank" rel="noopener">Dr. Claudio Abarca Vargas</a>, construido junto a Claude, de Anthropic. Código libre en <a href="https://github.com/Csav20/DjClaudeBrave" target="_blank" rel="noopener">GitHub</a> (MIT).</p>
+    </div>
+    <div class="credit-block coffee">
+      <p>☕ ¿Te alegró la fiesta? Si lo deseas, invítame un café por PayPal: <strong>csav20@gmail.com</strong></p>
+      <div class="coffee-actions">
+        <a class="paypal-btn" href="https://www.paypal.com/donate/?business=csav20%40gmail.com&amp;item_name=Inv%C3%ADtame+un+caf%C3%A9+-+DjClaudeBrave&amp;currency_code=USD" target="_blank" rel="noopener">☕ Invítame un café en PayPal</a>
+        <button type="button" id="copyPaypal" class="ghost">Copiar correo</button>
+      </div>
     </div>
   </section>
 
@@ -539,6 +647,24 @@ function parseVideoId(input = '') {
     const m = u.pathname.match(/\/(embed|shorts|live|v)\/([\w-]{11})/);
     if (m) return m[2];
   } catch { /* no es URL */ }
+  return null;
+}
+
+// Si oEmbed no responde (pasa con videos bloqueados fuera de YouTube), probamos solo los metadatos en Piped e Invidious
+async function fetchTitleAny(id) {
+  const o = await fetchTitle(id);
+  if (o?.title) return o;
+  for (const p of PROVIDERS) {
+    try {
+      if (p.kind === 'piped') {
+        const j = await getJSON(`${p.base}/streams/${id}`, 6000);
+        if (j.title) return { title: j.title, channel: j.uploader, duration: j.duration };
+      } else {
+        const j = await getJSON(`${p.base}/api/v1/videos/${id}?fields=title,author,lengthSeconds`, 6000);
+        if (j.title) return { title: j.title, channel: j.author, duration: j.lengthSeconds };
+      }
+    } catch { /* siguiente servicio */ }
+  }
   return null;
 }
 
@@ -698,7 +824,17 @@ class Deck extends EventTarget {
         <div data-el="player"></div>
         <button type="button" class="video-shield" data-act="play" aria-label="Reproducir o pausar" tabindex="-1"></button>
         <span class="silent-badge">Sonando en silencio: mueve el crossfader hacia ${this.id}</span>
-        <span class="fail-badge" data-el="fail"></span>
+        <div class="fail-badge" data-el="fail">
+          <p data-el="failMsg"></p>
+          <form class="fail-ask" data-el="failAsk" hidden>
+            <input data-el="failQuery" placeholder="Ej: artista – canción" autocomplete="off" aria-label="Nombre de la canción">
+            <button type="submit">Buscar</button>
+          </form>
+          <div class="fail-actions">
+            <button type="button" data-act="alt">Buscar otra versión</button>
+            <button type="button" data-act="ext">Abrir en YouTube</button>
+          </div>
+        </div>
       </div>
       <div class="progress" data-el="progress" title="Clic para saltar">
         <div class="progress-fill" data-el="fill"></div>
@@ -739,6 +875,14 @@ class Deck extends EventTarget {
       if (!b || b.type === 'submit') return;
       if (b.dataset.act) this.action(b.dataset.act);
       if (b.dataset.hot !== undefined) this.hotcue(+b.dataset.hot, e.shiftKey);
+    });
+    this.el.failAsk.addEventListener('submit', e => {
+      e.preventDefault();
+      const q = this.el.failQuery.value.trim();
+      if (!q || !this.track) return;
+      this.track.title = q;
+      this.el.failQuery.value = '';
+      this.dispatchEvent(new Event('findalt'));
     });
     this.el.loadForm.addEventListener('submit', e => {
       e.preventDefault();
@@ -812,7 +956,9 @@ class Deck extends EventTarget {
     this.armed = false;
     this.played = false;
     this.failed = false;
-    this.el.fail.textContent = '';
+    this.el.failMsg.textContent = '';
+    this.el.failAsk.hidden = true;
+    this.failCode = null;
     this.root.classList.remove('failed');
     this._dur = 0;
     const opts = { videoId: track.id, startSeconds: 0 };
@@ -829,6 +975,9 @@ class Deck extends EventTarget {
         Object.assign(this.track, info);
         this.el.title.textContent = info.title;
         this.el.sub.textContent = info.channel || '';
+      } else if (!info && this.track?.id === track.id) {
+        this.el.title.textContent = `Video ${track.id}`;
+        this.el.sub.textContent = 'Nombre no disponible';
       }
     }
     this.dispatchEvent(new CustomEvent('loaded', { detail: this.track }));
@@ -844,6 +993,8 @@ class Deck extends EventTarget {
       case 'sync': return this.dispatchEvent(new Event('sync'));
       case 'nudgeBack': return this.nudge(-1);
       case 'nudgeFwd': return this.nudge(1);
+      case 'alt': return this.dispatchEvent(new Event('findalt'));
+      case 'ext': return this.openExternal();
     }
   }
 
@@ -858,8 +1009,29 @@ class Deck extends EventTarget {
   play() {
     if (!this.track) return toast(`Deck ${this.id} está vacío: carga una pista primero`);
     if (this.failed) return toast(`Deck ${this.id}: esta pista no se puede reproducir aquí, carga otra versión`);
-    this.player?.playVideo();
+    this.wantPlay = true;
+    if (this.state === 5 || this.state === -1) {
+      // Pista recién preparada (o deck que tuvo un error): cargarla sonando es más fiable que playVideo()
+      this.player?.loadVideoById({ videoId: this.track.id, startSeconds: Math.max(0, this.time()) });
+    } else {
+      this.player?.playVideo();
+    }
     this.armWatchdog();
+  }
+
+  // Abre la pista en youtube.com, donde el dueño sí permite reproducirla.
+  // Ese audio queda fuera del crossfader: se controla en su propia ventana.
+  openExternal() {
+    if (!this.track) return;
+    const t = Math.floor(this.time());
+    window.open(`https://www.youtube.com/watch?v=${this.track.id}${t > 1 ? `&t=${t}s` : ''}`, 'djclaudebrave-youtube', 'popup,width=760,height=480');
+    toast('Se abrió en YouTube. Su volumen se controla en esa ventana, no con el crossfader.', 5000);
+  }
+
+  setFailMsg(text, ask = false) {
+    this.el.failMsg.textContent = text;
+    this.el.failAsk.hidden = !ask;
+    if (ask) setTimeout(() => this.el.failQuery.focus(), 50);
   }
 
   // Algunos videos de sellos no arrancan embebidos y YouTube no avisa: lo detectamos nosotros.
@@ -875,11 +1047,11 @@ class Deck extends EventTarget {
     this.failed = true;
     this.armed = false;
     this.root.classList.add('failed');
-    this.el.fail.textContent = `No se puede reproducir aquí: ${reason}. Prueba la versión «lyrics» o «audio».`;
+    this.setFailMsg(`No se puede reproducir aquí: ${reason}.`);
     toast(`Deck ${this.id}: ${reason}`, 4200);
     this.dispatchEvent(new CustomEvent('error', { detail: reason }));
   }
-  pause() { if (this.ready) this.player.pauseVideo(); }
+  pause() { this.wantPlay = false; if (this.ready) this.player.pauseVideo(); }
   toggle() { this.isPlaying() ? this.pause() : this.play(); }
   seek(t) { if (this.ready && this.track) this.player.seekTo(Math.max(0, Math.min(t, this.duration() - 0.5)), true); }
 
@@ -979,11 +1151,13 @@ class Deck extends EventTarget {
     if (playing && Math.abs(this.player.getPlaybackRate() - this.wantRate) > 0.004) {
       this.player.setPlaybackRate(this.wantRate); // YouTube reinicia el tempo al cambiar de video
     }
+    this.dispatchEvent(new CustomEvent('state', { detail: s }));
     if (s === 0) this.dispatchEvent(new Event('ended'));
   }
 
   onError(code) {
     clearTimeout(this.watchdog);
+    this.failCode = code;
     this.markFailed(ERRORS[code] || `error ${code}`);
   }
 
@@ -1251,7 +1425,7 @@ const mixer = new Mixer(A, B);
 const deckOf = id => (id === 'A' ? A : B);
 const other = d => (d === A ? B : A);
 
-const settings = store.get('djbrave.settings', { mixLen: 12, autoPause: true, curve: 'smooth', master: 90 });
+const settings = store.get('djbrave.settings', { mixLen: 12, autoPause: true, curve: 'smooth', master: 90, autoAlt: true });
 const saveSettings = () => store.set('djbrave.settings', settings);
 
 const lib = new Library({ onLoad: (track, id) => deckOf(id).load(track) });
@@ -1292,6 +1466,10 @@ mixer.crossfader = 0;
 A.ensurePlayer().then(() => mixer.apply());
 B.ensurePlayer().then(() => mixer.apply());
 
+// ---------- Bus de eventos para plugins ----------
+const bus = new EventTarget();
+function emit(type, detail) { bus.dispatchEvent(new CustomEvent(type, { detail })); }
+
 // ---------- Transiciones ----------
 const liveDeck = () => (mixer.x < 0.5 ? A : B);
 
@@ -1300,9 +1478,14 @@ async function mixToOther() {
   const from = liveDeck();
   const to = other(from);
   if (!to.track) return toast(`Deck ${to.id} está vacío: carga la siguiente pista ahí`);
-  if (to.failed) return toast(`Deck ${to.id} tiene una pista que no se puede reproducir: carga otra`);
+  if (to.failed && to.altSearching) {
+    to.mixAfterAlt = true; // mezclamos apenas aparezca la versión reproducible
+    return toast(`Deck ${to.id}: buscando una versión reproducible; mezclo apenas la encuentre`, 3500);
+  }
+  if (to.failed) return toast(`Deck ${to.id} tiene una pista que no se puede reproducir: carga otra o usa «Buscar otra versión»`);
   if (!to.isPlaying()) to.play();
   $('#btnMix').classList.add('running');
+  emit('mix:start', { from: from.id, to: to.id, seconds: settings.mixLen });
   // Espera a que el deck entrante suene de verdad antes de abrir el crossfader
   const t0 = performance.now();
   while (to.state !== 1 && !to.failed && performance.now() - t0 < 7000) await new Promise(r => setTimeout(r, 100));
@@ -1310,8 +1493,10 @@ async function mixToOther() {
   const done = await mixer.fadeTo(to === A ? 0 : 1, settings.mixLen * 1000);
   $('#btnMix').classList.remove('running');
   if (done && settings.autoPause && from.isPlaying()) from.pause();
+  emit('mix:end', { from: from.id, to: to.id, completed: done });
 }
 $('#btnMix').addEventListener('click', mixToOther);
+document.querySelectorAll('[data-mix]').forEach(b => b.addEventListener('click', mixToOther));
 
 // Sync: iguala el BPM de este deck al del otro
 [A, B].forEach(d => d.addEventListener('sync', () => {
@@ -1361,11 +1546,115 @@ function autoDjTick() {
   if (lib.queue.length) { await d.load(lib.next(), { autoplay: true }); }
 }));
 
-// Si la pista precargada falla, el Auto-DJ prueba con la siguiente de la cola
-[A, B].forEach(d => d.addEventListener('error', () => {
-  if (!autoDj.checked || d === liveDeck() || !lib.queue.length) return;
-  d.load(lib.next()).then(() => { d.armed = true; });
-}));
+// ---------- Versiones alternativas para videos bloqueados ----------
+// Algunos dueños de derechos permiten un video solo en youtube.com. No esquivamos ese bloqueo:
+// buscamos otra versión del mismo tema (lyrics, letra, audio) que sí permita reproducirse aquí.
+const autoAlt = $('#autoalt');
+autoAlt.checked = settings.autoAlt !== false;
+autoAlt.addEventListener('change', e => { settings.autoAlt = e.target.checked; saveSettings(); });
+
+// Reproductor oculto y silenciado que comprueba si un video se puede reproducir embebido
+const prober = (() => {
+  let player, ready, cb = null, chain = Promise.resolve();
+  const host = document.createElement('div');
+  host.className = 'probe';
+  host.setAttribute('aria-hidden', 'true');
+  host.appendChild(document.createElement('div'));
+  document.body.appendChild(host);
+  const init = () => ready || (ready = loadYouTubeAPI().then(YT => new Promise(res => {
+    player = new YT.Player(host.firstChild, {
+      width: 320, height: 200,
+      playerVars: { autoplay: 0, controls: 0, playsinline: 1, origin: location.origin },
+      events: {
+        onReady: () => { player.mute(); res(); },
+        onStateChange: e => cb?.({ state: e.data }),
+        onError: e => cb?.({ error: e.data }),
+      },
+    });
+  })));
+  const run = id => init().then(() => new Promise(resolve => {
+    const done = ok => { cb = null; clearTimeout(timer); try { player.stopVideo(); } catch { /* nada */ } resolve(ok); };
+    const timer = setTimeout(() => done(false), 9000);
+    cb = ev => { if (ev.error != null) done(false); else if (ev.state === 1) done(true); };
+    player.mute();
+    player.loadVideoById(id);
+  }));
+  return { test: id => (chain = chain.then(() => run(id), () => run(id))) };
+})();
+
+function cleanTitle(t = '') {
+  return t
+    .replace(/\(.*?\)|\[.*?\]|【.*?】/g, ' ')
+    .replace(/\b(official|oficial|music|video|videoclip|clip|lyrics?|letra|audio|hd|hq|4k|remaster(ed)?|visualizer|en vivo|live)\b/gi, ' ')
+    .split(/[|•]/)[0]
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function findAlternative(d) {
+  const t = d.track;
+  if (!t || d.altSearching) return false;
+  if (location.protocol === 'file:' || d.failCode === 153) return false; // en file:// falla todo: no tiene sentido buscar
+  let title = t.title;
+  if (!title) {
+    d.setFailMsg('Buscando el nombre del tema…');
+    const meta = await fetchTitleAny(t.id);
+    if (meta?.title && d.track === t) { Object.assign(t, meta); title = meta.title; d.el.title.textContent = meta.title; }
+  }
+  if (!title) {
+    d.setFailMsg('Este video está bloqueado fuera de YouTube y no pude saber su nombre. ¿Qué canción es? La busco en otra versión:', true);
+    return false;
+  }
+
+  d.altSearching = true;
+  const wanted = d.wantPlay;
+  d.setFailMsg('Buscando una versión que sí se pueda reproducir aquí…');
+  const base = cleanTitle(title) || title;
+  const tried = new Set([t.id, ...(t.triedIds || [])]);
+  const candidates = [];
+  const lengthOk = c => !t.duration || !c.duration || (c.duration > t.duration * 0.6 && c.duration < t.duration * 1.5);
+
+  for (const suffix of ['lyrics', 'letra', 'audio']) {
+    try {
+      const { items } = await searchYouTube(`${base} ${suffix}`, lib.apiKey);
+      for (const c of items.slice(0, 6)) {
+        if (!tried.has(c.id) && !candidates.some(x => x.id === c.id) && lengthOk(c)) candidates.push(c);
+      }
+    } catch { /* probamos con el siguiente sufijo */ }
+    if (candidates.length >= 8) break;
+  }
+
+  for (const [i, c] of candidates.slice(0, 8).entries()) {
+    if (d.track !== t) break; // cargaron otra pista mientras buscábamos
+    d.setFailMsg(`Probando versión ${i + 1} de ${Math.min(candidates.length, 8)}…`);
+    tried.add(c.id);
+    if (await prober.test(c.id)) {
+      d.altSearching = false;
+      // Si ibas a escucharla, se carga sonando (cargar en pausa y luego reproducir pierde la orden)
+      await d.load({ ...c, triedIds: [...tried], altOf: t.altOf || t.id }, { autoplay: wanted });
+      d.wantPlay = wanted;
+      toast(`Deck ${d.id}: encontré una versión que sí se puede reproducir: ${c.title}`, 4500);
+      emit('deck:alternative', { deck: d.id, from: t, to: c });
+      if (d.mixAfterAlt) { d.mixAfterAlt = false; setTimeout(mixToOther, 300); }
+      return true;
+    }
+  }
+  d.altSearching = false;
+  d.mixAfterAlt = false;
+  if (d.track === t) d.setFailMsg('No encontré otra versión que se pueda reproducir aquí. Puedes abrirla en YouTube o cargar otra canción.');
+  return false;
+}
+
+[A, B].forEach(d => {
+  d.addEventListener('findalt', () => findAlternative(d));
+  d.addEventListener('error', async () => {
+    const found = autoAlt.checked && await findAlternative(d);
+    // Si no hubo alternativa, el Auto-DJ pasa a la siguiente canción de la cola
+    if (!found && autoDj.checked && d !== liveDeck() && lib.queue.length) {
+      d.load(lib.next()).then(() => { d.armed = true; });
+    }
+  });
+});
 
 // ---------- Bucle de interfaz ----------
 setInterval(() => { A.tick(); B.tick(); autoDjTick(); }, 200);
@@ -1396,9 +1685,95 @@ document.addEventListener('keydown', e => {
   if (fn) { e.preventDefault(); fn(); }
 });
 
-window.djBrave = { A, B, mixer, lib }; // acceso desde la consola de Brave para depurar
+// ---------- Invítame un café ----------
+$('#copyPaypal').addEventListener('click', async () => {
+  const mail = 'csav20@gmail.com';
+  try { await navigator.clipboard.writeText(mail); toast(`Copiado: ${mail}. ¡Gracias por el café!`); }
+  catch { toast(`PayPal: ${mail}`, 5000); }
+});
+
+// ---------- Diagnóstico ----------
+const VERSION = '0.5.1';
+const REPO = 'https://github.com/Csav20/DjClaudeBrave';
+const recentErrors = [];
+const logError = msg => { recentErrors.push(`${new Date().toISOString().slice(11, 19)} ${String(msg).slice(0, 200)}`); if (recentErrors.length > 10) recentErrors.shift(); };
+window.addEventListener('error', e => logError(e.message));
+window.addEventListener('unhandledrejection', e => logError(e.reason?.message || e.reason));
+
+[A, B].forEach(d => {
+  d.addEventListener('loaded', e => emit('track:load', { deck: d.id, track: e.detail }));
+  d.addEventListener('state', e => {
+    if (e.detail === 1) emit('deck:play', { deck: d.id, track: d.track });
+    if (e.detail === 2) emit('deck:pause', { deck: d.id, track: d.track });
+    if (e.detail === 0) emit('deck:end', { deck: d.id, track: d.track });
+  });
+  d.addEventListener('error', e => { logError(`Deck ${d.id}: ${e.detail}`); emit('deck:error', { deck: d.id, track: d.track, reason: e.detail }); });
+});
+
+function diagnostics() {
+  const deck = d => `${d.id}: ${d.track ? `${d.track.title || ''} [${d.track.id}]` : 'vacío'} · estado ${d.state}${d.failed ? ' · FALLÓ' : ''} · tempo ${d.wantRate}×`;
+  return [
+    `- Versión: DjClaudeBrave ${VERSION}`,
+    `- Navegador: ${navigator.userAgent}`,
+    `- Pantalla: ${innerWidth}×${innerHeight} · táctil: ${matchMedia('(pointer: coarse)').matches ? 'sí' : 'no'}`,
+    `- Origen: ${location.protocol}//${location.host}`,
+    `- Deck ${deck(A)}`,
+    `- Deck ${deck(B)}`,
+    `- Crossfader: ${mixer.x.toFixed(2)} · curva ${mixer.curve} · Auto‑DJ ${autoDj.checked ? 'sí' : 'no'} · cola ${lib.queue.length}`,
+    `- Plugins: ${plugins.map(p => p.name).join(', ') || 'ninguno'}`,
+    `- Errores recientes:${recentErrors.length ? '\n  - ' + recentErrors.join('\n  - ') : ' ninguno'}`,
+  ].join('\n');
+}
+
+// Reportar: abre un issue en GitHub con el diagnóstico listo para que Claude (o cualquiera) lo resuelva
+$('#btnReport').addEventListener('click', () => {
+  const body = `## Qué pasó\n\n<!-- Cuéntalo con tus palabras: qué hiciste, qué esperabas y qué ocurrió -->\n\n## Diagnóstico automático\n\n${diagnostics()}\n\n<!-- Revisa el diagnóstico antes de enviar: es público. No incluye tu clave de YouTube. -->`;
+  const url = `${REPO}/issues/new?labels=reporte&title=${encodeURIComponent('[Reporte] ')}&body=${encodeURIComponent(body)}`;
+  window.open(url, '_blank', 'noopener');
+});
+
+// ---------- API de plugins (plug and play) ----------
+// Un plugin es un objeto { name, setup(api) }. Ver plugins/README.md.
+const plugins = [];
+const api = Object.freeze({
+  version: VERSION,
+  decks: { A, B },
+  mixer,
+  library: lib,
+  toast,
+  on(type, fn) { const h = e => { try { fn(e.detail); } catch (err) { logError(`plugin: ${err.message}`); } }; bus.addEventListener(type, h); return () => bus.removeEventListener(type, h); },
+  mix: () => mixToOther(),
+  load: (deckId, track) => deckOf(deckId).load(track),
+  enqueue: track => lib.enqueue(track),
+  addPanel(title) {
+    const area = $('#pluginArea');
+    area.hidden = false;
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.innerHTML = `<div class="panel-head"><h2></h2></div><div class="plugin-body"></div>`;
+    panel.querySelector('h2').textContent = title;
+    area.appendChild(panel);
+    return panel.querySelector('.plugin-body');
+  },
+});
+
+function use(plugin) {
+  if (!plugin?.name || typeof plugin.setup !== 'function') return console.warn('Plugin inválido: necesita { name, setup(api) }');
+  if (plugins.some(p => p.name === plugin.name)) return;
+  try { plugin.setup(api); plugins.push(plugin); }
+  catch (err) { logError(`plugin ${plugin.name}: ${err.message}`); toast(`El plugin «${plugin.name}» falló al iniciar`); }
+}
+
+// Plugins registrados antes de que cargara el núcleo
+const pending = Array.isArray(window.DjClaudeBravePlugins) ? window.DjClaudeBravePlugins : [];
+window.DjClaudeBrave = Object.freeze({ version: VERSION, use, diagnostics });
+pending.forEach(use);
+
+window.djBrave = { A, B, mixer, lib, probe: id => prober.test(id) }; // acceso desde la consola de Brave para depurar
 
 })();
 </script>
+  <!-- Plugins: agrega aquí una línea por plugin. Si un archivo falta, la app sigue funcionando. -->
+  <script src="plugins/historial.js"></script>
 </body>
 </html>
