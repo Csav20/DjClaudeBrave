@@ -37,7 +37,7 @@ Un plugin agrega una función sin tocar el núcleo (`index.html`). Si falla o fa
 | `api.addPanel(título)` | Crea un panel en la página y devuelve su contenedor |
 | `api.toast(texto)` | Muestra un aviso |
 | `api.load('A' \| 'B', { id })` | Carga un video de YouTube en un deck |
-| `api.enqueue({ id, title })` | Agrega a la cola |
+| `api.enqueue({ id, title })` | Agrega a la lista de reproducción |
 | `api.mix()` | Mezcla al otro deck |
 | `api.version` | Versión del núcleo |
 
@@ -46,7 +46,7 @@ Referencia completa en [ARCHITECTURE.md](../ARCHITECTURE.md).
 ## Ideas para empezar
 
 - 🎉 **Aplausos:** un botón con efectos de sonido para fiestas.
-- 🎂 **Modo cumpleaños:** cola temática y un mensaje en pantalla.
+- 🎂 **Modo cumpleaños:** lista temática y un mensaje en pantalla.
 - 📊 **Contador de mezclas:** cuántas transiciones hiciste en la sesión.
 - 🧒 **Modo niños:** botones más grandes y solo lo esencial.
 
