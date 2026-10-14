@@ -45,7 +45,7 @@ Dentro del `<script>` de `index.html`, el código está separado en secciones ma
 | `search` | Búsqueda sin clave en instancias públicas de Piped e Invidious, con respaldo automático; usa la clave de YouTube Data API si existe |
 | `deck` | Clase `Deck`: un reproductor de YouTube con transporte, CUE, hot cues, tempo, Tap BPM, Nudge y detección de videos bloqueados |
 | `mixer` | Clase `Mixer`: crossfader con curvas y transiciones automáticas por volumen |
-| `library` | Clase `Library`: resultados de búsqueda y cola persistente, con arrastrar y soltar |
+| `library` | Clase `Library`: resultados de búsqueda y lista de reproducción persistente (no se borra al sonar; un puntero `pos` marca la siguiente), con repetir, reiniciar, guardar/abrir archivo y arrastrar y soltar |
 | `app` | Conecta todo: mezcla, Sync, Auto‑DJ, teclado, bus de eventos, API de plugins, diagnóstico y reporte |
 
 ## Flujo de datos
@@ -58,7 +58,7 @@ flowchart LR
   L -->|carga pista| DB[Deck B]
   DA <-->|volumen| M[Mixer / crossfader]
   DB <-->|volumen| M
-  AD[Auto‑DJ] -->|toma de la cola| L
+  AD[Auto‑DJ] -->|toma la siguiente de la lista| L
   AD -->|lanza mezcla| M
   DA & DB & M -->|eventos| BUS((Bus de eventos))
   BUS --> P[Plugins]
@@ -93,11 +93,25 @@ El núcleo emite eventos que cualquier plugin puede escuchar con `api.on(tipo, f
 | `api.addPanel(título)` | Crea un panel en la página y devuelve su contenedor |
 | `api.toast(texto)` | Muestra un aviso |
 | `api.load('A' \| 'B', track)` | Carga una pista en un deck |
-| `api.enqueue(track)` | Agrega una pista a la cola |
+| `api.enqueue(track)` | Agrega una pista a la lista de reproducción |
 | `api.mix()` | Mezcla al otro deck |
 | `api.decks`, `api.mixer`, `api.library` | Acceso directo a los objetos del núcleo (úsalo con cuidado) |
 
 Los errores dentro de un plugin se capturan y quedan en el diagnóstico; no detienen la app. Detalles y ejemplo en [plugins/README.md](plugins/README.md).
+
+## Lista de reproducción persistente
+
+La lista vive en `localStorage` (`djbrave.queue`, `djbrave.queuePos`, `djbrave.queueLoop`) y **no se borra al sonar**:
+
+- Cada entrada tiene un `uid` propio, así una misma canción puede estar repetida sin confundirse.
+- `next()` entrega la canción del puntero `pos` y avanza; no la quita. Con «Repetir lista», al llegar al final vuelve a la primera.
+- Cuando una canción de la lista empieza a sonar en **cualquier** deck (`deck:play`), se marca como sonada (✓) y el puntero avanza hasta ella. El puntero nunca retrocede, para no repetir canciones.
+- Las versiones alternativas de un video bloqueado heredan el `uid` de su entrada.
+- «Guardar archivo» descarga la lista como JSON; «Abrir archivo» la agrega de vuelta. Sirve de respaldo y para llevarla a otro equipo.
+
+## Decks con look de cassette
+
+Cada video está dentro de un `.cassette` dibujado solo con CSS (sin imágenes externas): carcasa translúcida teñida con el color del deck, etiqueta manuscrita (fuente Caveat) con el título, tornillos, ventana con el video y dos carretes. Los carretes giran cuando el deck suena, a una velocidad que sigue el tempo (`--rate`), y el grosor de cinta de cada uno depende del avance de la canción (`--p`).
 
 ## Videos bloqueados: versiones alternativas
 
@@ -106,13 +120,13 @@ Cuando un deck falla (error de YouTube o el video no arranca en 7 s):
 1. Si el título no se conoce, se consultan solo los **metadatos** en oEmbed, Piped e Invidious. Si nadie lo entrega, el deck pregunta el nombre de la canción.
 2. Se busca `título limpio + lyrics / letra / audio` y se descartan candidatos con una duración muy distinta.
 3. Cada candidato se prueba en un reproductor de YouTube oculto y silenciado (`prober`). El primero que llega a «reproduciendo» se carga en el deck; si la persona iba a escucharlo, se carga sonando.
-4. Si se había pedido mezclar hacia ese deck, la mezcla se lanza sola al encontrar la alternativa. El Auto‑DJ hace lo mismo con la cola.
+4. Si se había pedido mezclar hacia ese deck, la mezcla se lanza sola al encontrar la alternativa. El Auto‑DJ hace lo mismo con la lista.
 
 Se puede desactivar con el interruptor «Buscar otra versión si un video está bloqueado». En la consola, `djBrave.probe(id)` indica si un video se puede reproducir aquí.
 
 ## Diagnóstico y reporte
 
-El botón **Reportar un problema** abre un issue nuevo en GitHub con un diagnóstico automático: versión, navegador, tamaño de pantalla, estado de ambos decks, crossfader, cola, plugins activos y los últimos errores. La persona revisa el texto antes de enviarlo; nunca incluye la clave de YouTube. Desde la consola del navegador, `DjClaudeBrave.diagnostics()` muestra lo mismo.
+El botón **Reportar un problema** abre un issue nuevo en GitHub con un diagnóstico automático: versión, navegador, tamaño de pantalla, estado de ambos decks, crossfader, lista de reproducción, plugins activos y los últimos errores. La persona revisa el texto antes de enviarlo; nunca incluye la clave de YouTube. Desde la consola del navegador, `DjClaudeBrave.diagnostics()` muestra lo mismo.
 
 Así se cierra el ciclo de crecimiento: **alguien usa la app → reporta → Claude (con [CLAUDE.md](CLAUDE.md)) o cualquier persona resuelve → se publica en GitHub Pages**.
 

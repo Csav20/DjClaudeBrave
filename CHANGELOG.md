@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y [versionado semántico](https://semver.org/lang/es/).
 
+## [0.6.0] — 2026-10-14
+
+### Agregado
+- Decks con look de cassette translúcido: etiqueta manuscrita con el tema y el lado (A/B), tornillos, ventana con el video y carretes que giran según el tempo; la cinta pasa de un carrete al otro según avanza la canción.
+- Lista de reproducción persistente (antes «Cola»): no se borra al sonar, marca con ✓ lo que sonó en cualquier deck, resalta la siguiente y muestra qué suena en A o B.
+- «Repetir lista», «Volver al inicio», «Guardar archivo» y «Abrir archivo» (JSON) para respaldar o llevar la lista a otro equipo.
+- «Vaciar lista» pide confirmación con un segundo clic.
+
+### Cambiado
+- El título de cada deck ahora va escrito en la etiqueta del cassette.
+- En celular, cada canción de la lista muestra el título completo y los botones en una segunda línea.
+
 ## [0.5.1] — 2026-10-11
 
 ### Cambiado

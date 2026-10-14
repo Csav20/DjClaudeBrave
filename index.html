@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <style>
 /* djBrave — consola de grafito con dos decks codificados por color */
 :root {
@@ -136,23 +136,98 @@ button:active { transform: translateY(1px); }
   width: 30px;
 }
 .deck-meta { flex: 1; min-width: 0; }
-.deck-title {
-  font: 600 19px/1.2 var(--display);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.deck:not(.loaded) .deck-title { color: var(--muted); }
+
 .deck-sub { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .deck-bpm { text-align: right; line-height: 1; }
 .deck-bpm strong { display: block; font: 700 26px/1 var(--display); font-variant-numeric: tabular-nums; }
 .deck-bpm span { font-size: 12px; color: var(--muted); }
 
+/* ---------- Cassette translúcido: el video es la ventana ---------- */
+.cassette {
+  --p: 0; --rate: 1;
+  position: relative;
+  padding: 12px 14px 0;
+  border-radius: 14px;
+  background:
+    linear-gradient(160deg, rgb(255 255 255 / .10), rgb(255 255 255 / .02) 45%, rgb(255 255 255 / .06)),
+    color-mix(in srgb, var(--accent) 16%, rgb(20 23 30 / .55));
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .18), inset 0 -10px 24px rgb(0 0 0 / .25), 0 6px 18px rgb(0 0 0 / .35);
+  backdrop-filter: blur(6px);
+}
+.screw {
+  position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #c9ced9, #6b7385);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / .35);
+}
+.screw::after { content: ""; position: absolute; left: 1.5px; right: 1.5px; top: 4px; height: 1px; background: #3b4150; transform: rotate(35deg); }
+.screw.tl { top: 5px; left: 5px; } .screw.tr { top: 5px; right: 5px; }
+.screw.bl { bottom: 5px; left: 5px; } .screw.br { bottom: 5px; right: 5px; }
+
+.cas-label {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 4px 10px; padding: 3px 10px;
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(transparent 0 15px, rgb(21 23 29 / .12) 15px 16px),
+    linear-gradient(#f4ecd8, #e9dfc6);
+  border-top: 5px solid var(--accent);
+  color: #232733;
+  min-width: 0;
+}
+.cas-side { font: 700 22px/1 var(--display); color: var(--accent); filter: brightness(.8); }
+.cas-title {
+  flex: 1; min-width: 0;
+  font: 700 22px/1.25 "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.deck:not(.loaded) .cas-title { color: #7a7f8c; }
+.cas-type { font: 600 12px/1 var(--display); letter-spacing: .04em; color: #6b6f7a; }
+
 .video-wrap {
   position: relative;
   aspect-ratio: 16 / 9;
   background: #10131a;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 0 0 3px rgb(10 12 16 / .65), 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent);
 }
+
+.cas-reels {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  height: 52px; margin-top: 10px;
+}
+.reel {
+  position: relative; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  /* la cinta enrollada crece en un carrete y se achica en el otro */
+  background: radial-gradient(circle, #2a2320 0 calc(9px + 12px * var(--tape)), transparent calc(9.5px + 12px * var(--tape)));
+}
+.reel.left  { --tape: calc(1 - var(--p)); }
+.reel.right { --tape: var(--p); }
+.reel i {
+  width: 22px; height: 22px; border-radius: 50%;
+  background:
+    radial-gradient(circle, #10131a 0 3px, transparent 3.5px),
+    conic-gradient(from 0deg, #e9ebf1 0 20deg, transparent 20deg 120deg, #e9ebf1 120deg 140deg, transparent 140deg 240deg, #e9ebf1 240deg 260deg, transparent 260deg),
+    radial-gradient(circle, transparent 0 7px, #e9ebf1 7.5px 9px, transparent 9.5px);
+  box-shadow: 0 0 0 2px #e9ebf1 inset;
+}
+.deck.playing .reel i { animation: reel-spin calc(1.6s / var(--rate)) linear infinite; }
+@keyframes reel-spin { to { transform: rotate(-360deg); } }
+.tape-window {
+  width: 62px; height: 22px; border-radius: 4px;
+  background: linear-gradient(#3a2e28, #2a2320);
+  box-shadow: inset 0 0 0 2px rgb(10 12 16 / .6);
+}
+.cas-foot {
+  display: flex; justify-content: center; gap: 46px;
+  height: 22px; margin: 6px 22% 0;
+  background: color-mix(in srgb, var(--accent) 10%, rgb(10 12 16 / .55));
+  clip-path: polygon(8% 0, 92% 0, 100% 100%, 0 100%);
+  padding-top: 7px;
+}
+.cas-foot i { width: 9px; height: 9px; border-radius: 50%; background: #0c0e13; }
 .video-wrap iframe, .video-wrap > [data-el="player"] { width: 100%; height: 100%; display: block; border: 0; }
 /* Capa sobre el video: el clic pasa por djBrave y el teclado no se pierde dentro de YouTube */
 .video-shield {
@@ -356,6 +431,19 @@ input[type=range] { accent-color: var(--accent, var(--ink)); width: 100%; }
 .plugins[hidden] { display: none; }
 @media (max-width: 720px) { .plugins { margin-inline: 12px; } }
 
+/* ---------- Lista de reproducción ---------- */
+.list-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.list-tools button { padding: 8px 10px; font-size: 13px; min-height: 36px; }
+.list-tools .danger { margin-left: auto; color: var(--danger); }
+.list-tools .danger.armed { background: var(--danger); color: #15171d; border-color: transparent; }
+.tracklist li.played { opacity: .55; }
+.tracklist li.played .t-title::before { content: "✓ "; color: #5ee08f; }
+.tracklist li.next { box-shadow: inset 3px 0 0 var(--ink); background: rgb(255 255 255 / .04); }
+.t-badge { font: 600 11px/1 var(--display); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.t-badge.next { background: var(--ink); color: #15171d; }
+.t-badge.on-a { background: var(--a); color: #15171d; }
+.t-badge.on-b { background: var(--b); color: #15171d; }
+
 /* ---------- Créditos ---------- */
 .credits {
   display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 14px;
@@ -457,6 +545,17 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
   .bpm-tools [data-act=nudgeBack] { order: -2; }
   .sliders { gap: 10px; }
   .deck { padding: 12px; }
+  .cassette { padding: 10px 10px 0; }
+  .cas-title { font-size: 19px; }
+  .cas-reels { height: 44px; }
+  .reel { width: 38px; height: 38px; }
+  /* Lista en celular: título completo arriba, botones abajo */
+  .tracklist li { flex-wrap: wrap; row-gap: 6px; }
+  .tracklist li .t-meta { flex: 1 1 calc(100% - 64px); }
+  .tracklist li .t-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .tracklist li .t-actions { width: 100%; justify-content: flex-end; }
+  .tracklist img { width: 48px; height: 36px; }
+  .list-tools .danger { margin-left: 0; }
 }
 @media (hover: none) and (pointer: coarse) {
   .keys { display: none; }
@@ -510,7 +609,7 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
 
       <button id="btnMix" class="mixbtn" type="button">Mezclar al otro deck</button>
 
-      <label class="switch"><input type="checkbox" id="autodj"> Auto‑DJ con la cola</label>
+      <label class="switch"><input type="checkbox" id="autodj"> Auto‑DJ con la lista</label>
       <label class="switch"><input type="checkbox" id="autopause" checked> Pausar el deck que sale</label>
       <label class="switch" title="Si un video está bloqueado fuera de YouTube, busca y carga otra versión que sí se pueda reproducir"><input type="checkbox" id="autoalt" checked> Buscar otra versión si un video está bloqueado</label>
     </section>
@@ -540,8 +639,15 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
 
     <div class="panel" id="queuePanel">
       <div class="panel-head">
-        <h2>Cola <span id="qcount" class="count"></span></h2>
-        <button id="qclear" class="ghost" type="button">Vaciar cola</button>
+        <h2>Lista de reproducción <span id="qcount" class="count"></span></h2>
+      </div>
+      <div class="list-tools">
+        <label class="switch"><input type="checkbox" id="qloop"> Repetir lista</label>
+        <button id="qrestart" class="ghost" type="button" title="La próxima canción vuelve a ser la primera">Volver al inicio</button>
+        <button id="qexport" class="ghost" type="button" title="Descarga la lista como archivo para guardarla o llevarla a otro equipo">Guardar archivo</button>
+        <button id="qimport" class="ghost" type="button" title="Carga una lista guardada antes">Abrir archivo</button>
+        <input id="qfile" type="file" accept=".json,application/json" hidden>
+        <button id="qclear" class="ghost danger" type="button">Vaciar lista</button>
       </div>
       <ul id="queue" class="tracklist"></ul>
     </div>
@@ -552,7 +658,7 @@ dialog::backdrop { background: rgb(10 12 16 / .7); }
   <section class="credits" aria-label="Sobre DjClaudeBrave">
     <div class="credit-block">
       <span class="family">Family Open</span>
-      <p>Gratis, abierto y para toda la familia. Sin cuentas ni anuncios; tu cola y ajustes se guardan solo en este navegador.</p>
+      <p>Gratis, abierto y para toda la familia. Sin cuentas ni anuncios; tu lista y ajustes se guardan solo en este navegador.</p>
     </div>
     <div class="credit-block">
       <p>Creado por <a href="https://github.com/Csav20" target="_blank" rel="noopener">Dr. Claudio Abarca Vargas</a>, construido junto a Claude, de Anthropic. Código libre en <a href="https://github.com/Csav20/DjClaudeBrave" target="_blank" rel="noopener">GitHub</a> (MIT).</p>
@@ -815,10 +921,16 @@ class Deck extends EventTarget {
       <div class="deck-head">
         <span class="deck-letter">${this.id}</span>
         <div class="deck-meta">
-          <div class="deck-title" data-el="title">Deck vacío</div>
           <div class="deck-sub" data-el="sub">Pega un enlace, arrastra uno aquí o elige desde Buscar</div>
         </div>
         <div class="deck-bpm"><strong data-el="bpm">—</strong><span>BPM</span></div>
+      </div>
+      <div class="cassette">
+      <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
+      <div class="cas-label">
+        <span class="cas-side">${this.id}</span>
+        <span class="cas-title" data-el="title">Deck vacío</span>
+        <span class="cas-type">C‑60</span>
       </div>
       <div class="video-wrap">
         <div data-el="player"></div>
@@ -835,6 +947,13 @@ class Deck extends EventTarget {
             <button type="button" data-act="ext">Abrir en YouTube</button>
           </div>
         </div>
+      </div>
+      <div class="cas-reels" aria-hidden="true">
+        <span class="reel left"><i></i></span>
+        <span class="tape-window"></span>
+        <span class="reel right"><i></i></span>
+      </div>
+      <div class="cas-foot" aria-hidden="true"><i></i><i></i></div>
       </div>
       <div class="progress" data-el="progress" title="Clic para saltar">
         <div class="progress-fill" data-el="fill"></div>
@@ -1109,6 +1228,7 @@ class Deck extends EventTarget {
   onRate(r) {
     // YouTube puede redondear al valor soportado más cercano: mostramos el real.
     this.rate = r;
+    this.root.style.setProperty('--rate', r);
     this.el.rateOut.textContent = `${r.toFixed(2)}×`;
     this.el.rateOut.classList.toggle('snapped', Math.abs(r - this.wantRate) > 0.004);
     this.updateBpm();
@@ -1170,6 +1290,7 @@ class Deck extends EventTarget {
     this.el.pos.textContent = fmt(t);
     this.el.remain.textContent = `-${fmt(d - t)}`;
     this.el.fill.style.width = d ? `${(t / d) * 100}%` : '0%';
+    this.root.style.setProperty('--p', d ? (t / d).toFixed(3) : 0); // la cinta pasa de un carrete al otro
     this.root.classList.toggle('ending', this.isPlaying() && d > 0 && d - t < 30);
     this.root.classList.toggle('silent', this.isPlaying() && this.output < 3);
     if (d && d !== this._dur) { this._dur = d; this.drawMarks(); }
@@ -1264,15 +1385,22 @@ class Mixer {
 }
 
 /* ================= library.js ================= */
-// Biblioteca: resultados de búsqueda + cola persistente.
+// Biblioteca: resultados de búsqueda + lista de reproducción persistente.
+// La lista no se borra al sonar: un puntero (pos) indica cuál es la siguiente canción.
 
 const QKEY = 'djbrave.queue';
+const QPOS = 'djbrave.queuePos';
+const QLOOP = 'djbrave.queueLoop';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7); // identifica cada entrada aunque el video se repita
 const KKEY = 'djbrave.ytkey';
 
 class Library {
   constructor({ onLoad }) {
     this.onLoad = onLoad;
-    this.queue = store.get(QKEY, []);
+    this.queue = store.get(QKEY, []).map(t => (t.uid ? t : { ...t, uid: uid() }));
+    this.pos = Math.min(store.get(QPOS, 0), this.queue.length);
+    this.loop = store.get(QLOOP, false);
+    this.nowPlaying = {}; // { A: track, B: track }
     this.results = [];
     this.$results = document.getElementById('results');
     this.$queue = document.getElementById('queue');
@@ -1290,10 +1418,36 @@ class Library {
       e.preventDefault();
       this.search(document.getElementById('q').value);
     });
-    document.getElementById('qclear').addEventListener('click', () => {
-      this.queue = [];
+    // Vaciar pide un segundo clic para evitar accidentes
+    const clear = document.getElementById('qclear');
+    clear.addEventListener('click', () => {
+      if (!this.queue.length) return;
+      if (!clear.classList.contains('armed')) {
+        clear.classList.add('armed');
+        clear.textContent = '¿Vaciar? Presiona otra vez';
+        clearTimeout(this._clearT);
+        this._clearT = setTimeout(() => { clear.classList.remove('armed'); clear.textContent = 'Vaciar lista'; }, 3000);
+        return;
+      }
+      clearTimeout(this._clearT);
+      clear.classList.remove('armed'); clear.textContent = 'Vaciar lista';
+      this.queue = []; this.pos = 0;
       this.saveQueue();
+      toast('Lista vaciada');
     });
+    const loop = document.getElementById('qloop');
+    loop.checked = this.loop;
+    loop.addEventListener('change', () => { this.loop = loop.checked; store.set(QLOOP, this.loop); });
+    document.getElementById('qrestart').addEventListener('click', () => {
+      this.queue.forEach(t => { delete t.played; });
+      this.pos = 0;
+      this.saveQueue();
+      toast('La lista vuelve a empezar desde la primera canción', 2200);
+    });
+    document.getElementById('qexport').addEventListener('click', () => this.exportFile());
+    const file = document.getElementById('qfile');
+    document.getElementById('qimport').addEventListener('click', () => file.click());
+    file.addEventListener('change', () => { if (file.files[0]) this.importFile(file.files[0]); file.value = ''; });
 
     const handle = (list, source) => list.addEventListener('click', e => {
       const b = e.target.closest('button');
@@ -1302,8 +1456,8 @@ class Library {
       const track = source()[i];
       if (b.dataset.to) this.onLoad(track, b.dataset.to);
       if (b.dataset.add) this.enqueue(track);
-      if (b.dataset.rm) { this.queue.splice(i, 1); this.saveQueue(); }
-      if (b.dataset.up && i > 0) { [this.queue[i - 1], this.queue[i]] = [this.queue[i], this.queue[i - 1]]; this.saveQueue(); }
+      if (b.dataset.rm) this.reorder(() => this.queue.splice(i, 1));
+      if (b.dataset.up && i > 0) this.reorder(() => { [this.queue[i - 1], this.queue[i]] = [this.queue[i], this.queue[i - 1]]; });
     });
     handle(this.$results, () => this.results);
     handle(this.$queue, () => this.queue);
@@ -1342,11 +1496,11 @@ class Library {
     if (many.length > 1) {
       for (const vid of many) {
         const info = await fetchTitle(vid);
-        this.queue.push({ id: vid, ...(info || {}) });
+        this.queue.push({ id: vid, ...(info || {}), uid: uid() });
       }
       this.saveQueue();
       document.getElementById('q').value = '';
-      return toast(`${many.length} pistas agregadas a la cola`);
+      return toast(`${many.length} canciones agregadas a la lista`);
     }
     const id = parseVideoId(q);
     if (id) {
@@ -1371,11 +1525,18 @@ class Library {
   row(t, i, kind) {
     const thumb = t.thumb || `https://i.ytimg.com/vi/${t.id}/default.jpg`;
     const extra = kind === 'queue'
-      ? `<button type="button" data-up="1" title="Subir en la cola" aria-label="Subir">↑</button><button type="button" data-rm="1" title="Quitar de la cola" aria-label="Quitar">✕</button>`
-      : `<button type="button" data-add="1" title="Agregar a la cola">+ Cola</button>`;
-    return `<li draggable="true" data-i="${i}">
+      ? `<button type="button" data-up="1" title="Subir en la lista" aria-label="Subir">↑</button><button type="button" data-rm="1" title="Quitar de la lista" aria-label="Quitar">✕</button>`
+      : `<button type="button" data-add="1" title="Agregar a la lista de reproducción">+ Lista</button>`;
+    let cls = '', badge = '';
+    if (kind === 'queue') {
+      const on = ['A', 'B'].filter(d => this.nowPlaying[d] === t.uid);
+      if (t.played) cls += ' played';
+      if (i === this.pos && !on.length) { cls += ' next'; badge += '<span class="t-badge next">Siguiente</span>'; }
+      on.forEach(d => { badge += `<span class="t-badge on-${d.toLowerCase()}">Sonando ${d}</span>`; });
+    }
+    return `<li draggable="true" data-i="${i}" class="${cls.trim()}">
       <img src="${esc(thumb)}" alt="" loading="lazy" width="64" height="48">
-      <div class="t-meta"><div class="t-title">${esc(t.title || t.id)}</div><div class="t-sub">${esc(t.channel || '')}${t.duration ? ' · ' + fmt(t.duration) : ''}</div></div>
+      <div class="t-meta"><div class="t-title">${esc(t.title || t.id)}${badge}</div><div class="t-sub">${esc(t.channel || '')}${t.duration ? ' · ' + fmt(t.duration) : ''}</div></div>
       <div class="t-actions">
         <button type="button" class="to a" data-to="A" title="Cargar en deck A">A</button>
         <button type="button" class="to b" data-to="B" title="Cargar en deck B">B</button>
@@ -1390,26 +1551,97 @@ class Library {
   }
 
   renderQueue() {
-    this.$count.textContent = this.queue.length ? this.queue.length : '';
+    const played = this.queue.filter(t => t.played).length;
+    this.$count.textContent = this.queue.length ? `${played}/${this.queue.length}` : '';
     this.$queue.innerHTML = this.queue.length
       ? this.queue.map((t, i) => this.row(t, i, 'queue')).join('')
-      : '<li class="empty">La cola está vacía. Con Auto‑DJ activo, DjClaudeBrave toma de aquí la siguiente pista y la mezcla sola.</li>';
+      : '<li class="empty">La lista está vacía. Agrega canciones con «+ Lista». Quedan guardadas aunque suenen o cierres el navegador, y con Auto‑DJ se mezclan solas en orden.</li>';
   }
 
   enqueue(t) {
-    this.queue.push(t);
+    const { id, title, channel, duration, thumb } = t;
+    this.queue.push({ id, title, channel, duration, thumb, uid: uid() });
     this.saveQueue();
-    toast(`En cola: ${t.title || t.id}`, 1600);
+    toast(`Agregada a la lista: ${t.title || t.id}`, 1600);
   }
 
+  // ¿Este track corresponde a esta entrada de la lista? (incluye versiones alternativas)
+  matches(track, item) {
+    if (!track || !item) return false;
+    if (track.uid) return track.uid === item.uid; // viene de la lista: coincidencia exacta
+    return track.id === item.id || track.altOf === item.id;
+  }
+
+  hasNext() { return this.pos < this.queue.length || (this.loop && this.queue.length > 0); }
+
+  // Entrega la siguiente canción sin quitarla de la lista
   next() {
-    const t = this.queue.shift();
+    if (this.pos >= this.queue.length) {
+      if (!this.loop || !this.queue.length) return undefined;
+      this.queue.forEach(t => { delete t.played; });
+      this.pos = 0;
+    }
+    const t = this.queue[this.pos];
+    this.pos++;
     this.saveQueue();
-    return t;
+    return { ...t };
+  }
+
+  // Cuando una canción de la lista suena en cualquier deck: se marca y la lista sigue desde ahí
+  markPlaying(deckId, track) {
+    let i = this.queue.findIndex((t, k) => k === this.pos - 1 && this.matches(track, t));
+    if (i < 0) i = this.queue.findIndex(t => this.matches(track, t) && !t.played);
+    if (i < 0) i = this.queue.findIndex(t => this.matches(track, t));
+    this.nowPlaying[deckId] = i >= 0 ? this.queue[i].uid : null;
+    if (i >= 0) {
+      this.queue[i].played = true;
+      this.pos = Math.max(this.pos, i + 1); // avanza, nunca retrocede: no repite canciones ya pasadas
+      this.saveQueue();
+    } else {
+      this.renderQueue();
+    }
+  }
+
+  clearPlaying(deckId) { delete this.nowPlaying[deckId]; this.renderQueue(); }
+
+  // Mantiene el puntero en la misma «siguiente canción» al quitar o reordenar
+  reorder(change) {
+    const nextItem = this.queue[this.pos];
+    change();
+    const k = nextItem ? this.queue.indexOf(nextItem) : -1;
+    this.pos = k >= 0 ? k : Math.min(this.pos, this.queue.length);
+    this.saveQueue();
+  }
+
+  exportFile() {
+    if (!this.queue.length) return toast('La lista está vacía: no hay nada que guardar');
+    const data = { app: 'DjClaudeBrave', version: 1, saved: new Date().toISOString(), tracks: this.queue.map(({ id, title, channel, duration }) => ({ id, title, channel, duration })) };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    a.download = `lista-djclaudebrave-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast(`Lista guardada como archivo (${this.queue.length} canciones)`);
+  }
+
+  async importFile(file) {
+    try {
+      const data = JSON.parse(await file.text());
+      const tracks = (Array.isArray(data) ? data : data.tracks || [])
+        .filter(t => t && /^[\w-]{11}$/.test(t.id))
+        .map(({ id, title, channel, duration }) => ({ id, title, channel, duration, uid: uid() }));
+      if (!tracks.length) return toast('Ese archivo no tiene canciones de DjClaudeBrave');
+      this.queue.push(...tracks);
+      this.saveQueue();
+      toast(`${tracks.length} canciones agregadas desde el archivo`);
+    } catch {
+      toast('No pude leer ese archivo: elige una lista guardada con «Guardar archivo»');
+    }
   }
 
   saveQueue() {
     store.set(QKEY, this.queue);
+    store.set(QPOS, this.pos);
     this.renderQueue();
   }
 }
@@ -1526,7 +1758,7 @@ function autoDjTick() {
   if (idle.fresh && !idle.isPlaying()) idle.armed = true;
 
   // 1) Precarga la siguiente pista en el deck libre con margen para que haga buffer
-  if (rem < settings.mixLen + 20 && !idle.armed && !idle.isPlaying() && lib.queue.length) {
+  if (rem < settings.mixLen + 20 && !idle.armed && !idle.isPlaying() && lib.hasNext()) {
     const next = lib.next();
     idle.load(next).then(() => { idle.armed = true; });
     toast(`Auto‑DJ: ${next.title || next.id} preparado en deck ${idle.id}`, 2200);
@@ -1543,7 +1775,7 @@ function autoDjTick() {
   if (!autoDj.checked || d !== liveDeck()) return;
   const o = other(d);
   if (o.track && !o.isPlaying()) { o.armed = false; mixToOther(); return; }
-  if (lib.queue.length) { await d.load(lib.next(), { autoplay: true }); }
+  if (lib.hasNext()) { await d.load(lib.next(), { autoplay: true }); }
 }));
 
 // ---------- Versiones alternativas para videos bloqueados ----------
@@ -1631,7 +1863,7 @@ async function findAlternative(d) {
     if (await prober.test(c.id)) {
       d.altSearching = false;
       // Si ibas a escucharla, se carga sonando (cargar en pausa y luego reproducir pierde la orden)
-      await d.load({ ...c, triedIds: [...tried], altOf: t.altOf || t.id }, { autoplay: wanted });
+      await d.load({ ...c, triedIds: [...tried], altOf: t.altOf || t.id, uid: t.uid }, { autoplay: wanted });
       d.wantPlay = wanted;
       toast(`Deck ${d.id}: encontré una versión que sí se puede reproducir: ${c.title}`, 4500);
       emit('deck:alternative', { deck: d.id, from: t, to: c });
@@ -1650,7 +1882,7 @@ async function findAlternative(d) {
   d.addEventListener('error', async () => {
     const found = autoAlt.checked && await findAlternative(d);
     // Si no hubo alternativa, el Auto-DJ pasa a la siguiente canción de la cola
-    if (!found && autoDj.checked && d !== liveDeck() && lib.queue.length) {
+    if (!found && autoDj.checked && d !== liveDeck() && lib.hasNext()) {
       d.load(lib.next()).then(() => { d.armed = true; });
     }
   });
@@ -1693,7 +1925,7 @@ $('#copyPaypal').addEventListener('click', async () => {
 });
 
 // ---------- Diagnóstico ----------
-const VERSION = '0.5.1';
+const VERSION = '0.6.0';
 const REPO = 'https://github.com/Csav20/DjClaudeBrave';
 const recentErrors = [];
 const logError = msg => { recentErrors.push(`${new Date().toISOString().slice(11, 19)} ${String(msg).slice(0, 200)}`); if (recentErrors.length > 10) recentErrors.shift(); };
@@ -1703,6 +1935,8 @@ window.addEventListener('unhandledrejection', e => logError(e.reason?.message ||
 [A, B].forEach(d => {
   d.addEventListener('loaded', e => emit('track:load', { deck: d.id, track: e.detail }));
   d.addEventListener('state', e => {
+    if (e.detail === 1) lib.markPlaying(d.id, d.track);
+    if (e.detail === 0 || e.detail === 2) lib.clearPlaying(d.id);
     if (e.detail === 1) emit('deck:play', { deck: d.id, track: d.track });
     if (e.detail === 2) emit('deck:pause', { deck: d.id, track: d.track });
     if (e.detail === 0) emit('deck:end', { deck: d.id, track: d.track });
@@ -1719,7 +1953,7 @@ function diagnostics() {
     `- Origen: ${location.protocol}//${location.host}`,
     `- Deck ${deck(A)}`,
     `- Deck ${deck(B)}`,
-    `- Crossfader: ${mixer.x.toFixed(2)} · curva ${mixer.curve} · Auto‑DJ ${autoDj.checked ? 'sí' : 'no'} · cola ${lib.queue.length}`,
+    `- Crossfader: ${mixer.x.toFixed(2)} · curva ${mixer.curve} · Auto‑DJ ${autoDj.checked ? 'sí' : 'no'} · lista ${lib.queue.length} (siguiente: ${lib.pos + 1}${lib.loop ? ', repetir' : ''})`,
     `- Plugins: ${plugins.map(p => p.name).join(', ') || 'ninguno'}`,
     `- Errores recientes:${recentErrors.length ? '\n  - ' + recentErrors.join('\n  - ') : ' ninguno'}`,
   ].join('\n');

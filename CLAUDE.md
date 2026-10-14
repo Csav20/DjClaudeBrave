@@ -4,7 +4,7 @@ Este archivo le da a Claude (Claude Code o Claude en claude.ai) el contexto para
 
 ## Qué es
 
-DjClaudeBrave es un mezclador DJ de YouTube que corre en el navegador: dos decks, crossfader, cola y Auto‑DJ. Se publica en GitHub Pages: https://csav20.github.io/DjClaudeBrave/
+DjClaudeBrave es un mezclador DJ de YouTube que corre en el navegador: dos decks con look de cassette, crossfader, lista de reproducción persistente y Auto‑DJ. Se publica en GitHub Pages: https://csav20.github.io/DjClaudeBrave/
 
 Autor: Dr. Claudio Abarca Vargas ([@Csav20](https://github.com/Csav20)). Proyecto **Family Open**: nació pensando en Sofía, Iván y Máximo, para que cualquier familia tenga a mano herramientas así.
 

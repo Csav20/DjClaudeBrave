@@ -18,9 +18,9 @@
 
 </div>
 
-> **DjClaudeBrave** es un mezclador DJ gratis que corre en tu navegador: dos decks de YouTube, crossfader, cola y Auto‑DJ, **sin cortes y sin instalar nada**. Un proyecto **Family Open**, hecho para que cualquier familia tenga a mano herramientas de DJ de verdad.
+> **DjClaudeBrave** es un mezclador DJ gratis que corre en tu navegador: dos decks de YouTube con look de cassette, crossfader, lista de reproducción guardada y Auto‑DJ, **sin cortes y sin instalar nada**. Un proyecto **Family Open**, hecho para que cualquier familia tenga a mano herramientas de DJ de verdad.
 >
-> 🇬🇧 *A free DJ mixer that runs in your browser: two YouTube decks, a crossfader, a queue and Auto‑DJ, with **zero gaps and nothing to install**. A **Family Open** project, so every family can have real DJ tools at hand. [Read in English →](README.en.md)*
+> 🇬🇧 *A free DJ mixer that runs in your browser: two cassette‑style YouTube decks, a crossfader, a saved playlist and Auto‑DJ, with **zero gaps and nothing to install**. A **Family Open** project, so every family can have real DJ tools at hand. [Read in English →](README.en.md)*
 
 ---
 
@@ -59,6 +59,7 @@ Todo partió de un problema muy cotidiano: con YouTube abierto en **Brave**, cad
 | 0.4.1 | Presentación bilingüe, banner animado e imagen para compartir |
 | 0.5 | Versiones alternativas automáticas para videos bloqueados fuera de YouTube |
 | 0.5.1 | Ilustración oficial del proyecto: el DJ con audífonos y su vinilo |
+| 0.6 | Decks con look de cassette translúcido y lista de reproducción guardada que no se borra al sonar |
 
 Detalle completo en [CHANGELOG.md](CHANGELOG.md).
 
@@ -100,7 +101,7 @@ DjClaudeBrave se apoya en tres décadas de software musical. De cada etapa tomó
 | 2️⃣ | Busca una canción y presiona **A** para cargarla en el deck A; presiona ▶ |
 | 3️⃣ | Busca la siguiente y cárgala en el deck **B** mientras la primera sigue sonando |
 | 4️⃣ | Presiona **Mezclar** (o mueve el crossfader) y la música pasa de A a B sin cortes |
-| 5️⃣ | ¿Fiesta larga? Llena la **Cola** y activa **Auto‑DJ**: mezcla solo, canción tras canción |
+| 5️⃣ | ¿Fiesta larga? Arma tu **Lista de reproducción** con «+ Lista» y activa **Auto‑DJ**: mezcla solo, canción tras canción, y la lista queda guardada para la próxima |
 
 > ⚠️ Ábrelo siempre desde el enlace. Si haces doble clic en `index.html` en tu computador, YouTube bloquea la reproducción (error 153).
 
@@ -110,10 +111,12 @@ DjClaudeBrave se apoya en tres décadas de software musical. De cada etapa tomó
 
 | Área | Qué incluye |
 |---|---|
+| 📼 **Look cassette** | Cada video corre dentro de un cassette translúcido: etiqueta escrita a mano con el tema, tornillos y carretes que giran al ritmo del tempo; la cinta pasa de un carrete al otro según avanza la canción |
 | 💿 **Dos decks** | Play/pausa, CUE estilo CDJ, 4 hot cues por deck, saltos de 4 tiempos, barra de posición |
 | 🎚️ **Mezclador** | Crossfader con 3 curvas (suave, lineal, scratch), master, ganancia por deck, mezcla automática de 2 a 40 s |
 | 🥁 **Tempo** | Tempo por deck, **Tap BPM**, **Sync** y **Nudge ±** para cuadrar los golpes |
-| 🤖 **Auto‑DJ** | Precarga la siguiente canción de la cola y la mezcla sola al final de cada tema |
+| 📜 **Lista de reproducción** | Se guarda en tu navegador y **no se borra al sonar**: marca con ✓ lo que ya sonó en cualquier deck, resalta la siguiente, se puede repetir, reiniciar, guardar como archivo y volver a abrir |
+| 🤖 **Auto‑DJ** | Precarga la siguiente canción de la lista y la mezcla sola al final de cada tema |
 | 🔎 **Búsqueda** | Integrada y sin clave (Piped / Invidious, open source); también arrastrar enlaces desde otra pestaña |
 | 🔁 **Videos bloqueados** | Si el dueño de un video solo lo permite en youtube.com, la app busca sola otra versión del tema (lyrics, letra, audio) que sí se pueda reproducir, o lo abre en YouTube |
 | 📱 **Responsivo** | En celular, el crossfader y el botón Mezclar quedan en una barra fija, siempre a mano |
@@ -132,7 +135,7 @@ DjClaudeBrave **nació y se mantendrá** en la categoría **Family Open**:
 | 🆓 **Gratis siempre** | Sin planes de pago, sin funciones bloqueadas |
 | 🔓 **Abierto** | Código libre bajo licencia MIT: úsalo, estúdialo, mejóralo y compártelo |
 | 👨‍👩‍👧 **Para toda la familia** | Simple de usar, sin cuentas ni registros, sin anuncios propios |
-| 🔒 **Respeta tu privacidad** | DjClaudeBrave no recopila datos: tu cola y ajustes se guardan solo en tu navegador |
+| 🔒 **Respeta tu privacidad** | DjClaudeBrave no recopila datos: tu lista y ajustes se guardan solo en tu navegador |
 | 🔌 **Plug and play** | Se abre un enlace y funciona: sin instalar, sin compilar, sin configurar |
 | 🌍 **Bilingüe** | Presentación en español e inglés |
 | 🌱 **Crece con todos** | Cualquiera puede reportar, proponer ideas o escribir un plugin |
@@ -146,14 +149,14 @@ DjClaudeBrave **nació y se mantendrá** en la categoría **Family Open**:
 DjClaudeBrave tiene un **núcleo** en un solo archivo y **extensiones opcionales** que se enchufan sin tocarlo:
 
 ```
-index.html     →  núcleo completo (decks, mezclador, búsqueda, cola, Auto‑DJ)
+index.html     →  núcleo completo (decks, mezclador, búsqueda, lista de reproducción, Auto‑DJ)
 plugins/*.js   →  extensiones opcionales (si una falla, el núcleo sigue funcionando)
 assets/        →  ilustración, logo, favicon e imagen para compartir
 ```
 
 ```mermaid
 flowchart LR
-  U[Usuario] -->|busca y carga| L[Biblioteca y cola]
+  U[Usuario] -->|busca y carga| L[Búsqueda y lista de reproducción]
   L --> DA[Deck A]
   L --> DB[Deck B]
   DA <--> M[Crossfader]
@@ -231,6 +234,7 @@ git push                      # GitHub Pages se actualiza en 1–2 minutos
 | ✅ | Un solo `index.html`, publicado en GitHub Pages y responsivo |
 | ✅ | Arquitectura de plugins, historial de la sesión y reporte con diagnóstico |
 | ✅ | Presentación bilingüe español / inglés |
+| ✅ | Decks estilo cassette y lista de reproducción persistente |
 | ✅ | Búsqueda automática de versiones reproducibles para videos bloqueados |
 | 🔜 | Deck de archivos locales con EQ de 3 bandas, filtro, forma de onda y BPM automático |
 | 🔜 | Controladores DJ físicos por Web MIDI (Reloop, Pioneer DDJ, Numark) |

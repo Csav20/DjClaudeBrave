@@ -18,7 +18,7 @@
 
 </div>
 
-> **DjClaudeBrave** is a free DJ mixer that runs in your browser: two YouTube decks, a crossfader, a queue and Auto‑DJ, with **zero gaps and nothing to install**. A **Family Open** project, so every family can have real DJ tools at hand.
+> **DjClaudeBrave** is a free DJ mixer that runs in your browser: two cassette‑style YouTube decks, a crossfader, a saved playlist and Auto‑DJ, with **zero gaps and nothing to install**. A **Family Open** project, so every family can have real DJ tools at hand.
 >
 > 🇪🇸 *Un mezclador DJ gratis que corre en tu navegador, para toda la familia. [Leer en español →](README.md)*
 
@@ -61,6 +61,7 @@ It all began with an everyday annoyance: with YouTube open in **Brave**, every t
 | 0.4.1 | Bilingual presentation, animated banner and share image |
 | 0.5 | Automatic alternative versions for videos blocked outside YouTube |
 | 0.5.1 | Official project artwork: the DJ with headphones and his record |
+| 0.6 | Translucent cassette‑style decks and a saved playlist that is not removed after playing |
 
 Full details in [CHANGELOG.md](CHANGELOG.md).
 
@@ -102,7 +103,7 @@ DjClaudeBrave stands on three decades of music software. It takes one idea from 
 | 2️⃣ | Search for a song (*Buscar*) and press **A** to load it on deck A; press ▶ |
 | 3️⃣ | Find the next one and load it on deck **B** while the first keeps playing |
 | 4️⃣ | Press **Mezclar** (Mix) or move the crossfader, and the music flows from A to B with no gap |
-| 5️⃣ | Long party? Fill the **Cola** (queue) and turn on **Auto‑DJ**: it mixes on its own, song after song |
+| 5️⃣ | Long party? Build your **Lista de reproducción** (playlist) with «+ Lista» and turn on **Auto‑DJ**: it mixes on its own, song after song, and the list stays saved for next time |
 
 > ⚠️ Always open it from the link. If you double‑click `index.html` on your computer, YouTube blocks playback (error 153).
 
@@ -112,10 +113,12 @@ DjClaudeBrave stands on three decades of music software. It takes one idea from 
 
 | Area | What's included |
 |---|---|
+| 📼 **Cassette look** | Each video plays inside a translucent cassette: a handwritten label with the song, screws, and reels that spin with the tempo; the tape moves from one reel to the other as the song plays |
 | 💿 **Two decks** | Play/pause, CDJ‑style CUE, 4 hot cues per deck, 4‑beat jumps, seek bar |
 | 🎚️ **Mixer** | Crossfader with 3 curves (smooth, linear, scratch), master, per‑deck gain, automatic mixes from 2 to 40 s |
 | 🥁 **Tempo** | Per‑deck tempo, **Tap BPM**, **Sync** and **Nudge ±** to line up the beats |
-| 🤖 **Auto‑DJ** | Preloads the next song from the queue and mixes it at the end of each track |
+| 📜 **Playlist** | Saved in your browser and **not removed after playing**: ticks ✓ whatever played on either deck, highlights the next one, and can loop, restart, be saved to a file and reopened |
+| 🤖 **Auto‑DJ** | Preloads the next song from the playlist and mixes it at the end of each track |
 | 🔎 **Search** | Built in, no API key (Piped / Invidious, open source); you can also drag links from another tab |
 | 🔁 **Blocked videos** | If a video's owner only allows it on youtube.com, the app automatically finds another version of the song (lyrics, audio) that can play here, or opens it on YouTube |
 | 📱 **Responsive** | On phones, the crossfader and Mix button live in a fixed bottom bar, always within reach |
@@ -134,7 +137,7 @@ DjClaudeBrave **was born, and will stay**, in the **Family Open** category:
 | 🆓 **Always free** | No paid plans, no locked features |
 | 🔓 **Open** | Free code under the MIT license: use it, study it, improve it and share it |
 | 👨‍👩‍👧 **For the whole family** | Simple to use, no accounts or sign‑ups, no ads of its own |
-| 🔒 **Respects your privacy** | DjClaudeBrave collects no data: your queue and settings stay in your browser |
+| 🔒 **Respects your privacy** | DjClaudeBrave collects no data: your playlist and settings stay in your browser |
 | 🔌 **Plug and play** | Open a link and it works: nothing to install, build or configure |
 | 🌍 **Bilingual** | Presentation in Spanish and English |
 | 🌱 **Grows with everyone** | Anyone can report issues, suggest ideas or write a plugin |
@@ -148,14 +151,14 @@ DjClaudeBrave **was born, and will stay**, in the **Family Open** category:
 DjClaudeBrave has a **core** in a single file and **optional extensions** that plug in without touching it:
 
 ```
-index.html     →  full core (decks, mixer, search, queue, Auto‑DJ)
+index.html     →  full core (decks, mixer, search, playlist, Auto‑DJ)
 plugins/*.js   →  optional extensions (if one fails, the core keeps working)
 assets/        →  artwork, logo, favicon and share image
 ```
 
 ```mermaid
 flowchart LR
-  U[User] -->|search and load| L[Library and queue]
+  U[User] -->|search and load| L[Search and playlist]
   L --> DA[Deck A]
   L --> DB[Deck B]
   DA <--> M[Crossfader]
@@ -233,6 +236,7 @@ git push                      # GitHub Pages updates in 1–2 minutes
 | ✅ | A single `index.html`, hosted on GitHub Pages and responsive |
 | ✅ | Plugin architecture, session history and diagnostic reports |
 | ✅ | Bilingual Spanish / English presentation |
+| ✅ | Cassette‑style decks and a persistent playlist |
 | ✅ | Automatic playable alternatives for blocked videos |
 | 🔜 | Local file deck with 3‑band EQ, filter, waveform and auto BPM |
 | 🔜 | Physical DJ controllers via Web MIDI (Reloop, Pioneer DDJ, Numark) |
