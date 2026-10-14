@@ -172,7 +172,14 @@ flowchart LR
 | [plugins/README.md](plugins/README.md) | Cómo crear un plugin en 3 pasos, con plantilla |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Cómo reportar, proponer y contribuir; reglas Family Open |
 | [CLAUDE.md](CLAUDE.md) | Contexto y reglas para que Claude trabaje en el proyecto |
+| [PROMPT.md](PROMPT.md) | **Replica el proyecto:** prompt maestro, herramientas, flujo por fases y lecciones aprendidas |
 | [CHANGELOG.md](CHANGELOG.md) | Historial de versiones |
+
+---
+
+## 🧪 Replícalo con Claude
+
+¿Quieres construir tu propia versión? En [PROMPT.md](PROMPT.md) está el **prompt maestro** listo para copiar, en español e inglés. Incluye las herramientas necesarias, el flujo por fases con puntos de control, los prompts de seguimiento y las lecciones que aprendimos en el camino. Con eso, cualquier persona puede replicar DjClaudeBrave con Claude en una tarde.
 
 ---
 

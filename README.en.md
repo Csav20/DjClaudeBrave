@@ -174,7 +174,14 @@ flowchart LR
 | [plugins/README.md](plugins/README.md) | Create a plugin in 3 steps, with a template *(Spanish)* |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to report, suggest and contribute; Family Open rules *(Spanish)* |
 | [CLAUDE.md](CLAUDE.md) | Context and rules for Claude to work on the project *(Spanish)* |
+| [PROMPT.md](PROMPT.md) | **Replicate the project:** master prompt (Spanish and English), tools, phased workflow and lessons learned |
 | [CHANGELOG.md](CHANGELOG.md) | Version history *(Spanish)* |
+
+---
+
+## 🧪 Replicate it with Claude
+
+Want to build your own version? [PROMPT.md](PROMPT.md) has the **master prompt** ready to copy, in Spanish and English. It includes the tools you need, a phased workflow with checkpoints, follow‑up prompts and the lessons we learned along the way, so anyone can rebuild DjClaudeBrave with Claude in an afternoon.
 
 ---
 

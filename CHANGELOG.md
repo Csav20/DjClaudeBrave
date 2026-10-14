@@ -2,6 +2,11 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y [versionado semántico](https://semver.org/lang/es/).
 
+## [0.6.1] — 2026-10-14
+
+### Agregado
+- `PROMPT.md`: prompt maestro en español e inglés para replicar el proyecto con Claude, herramientas necesarias, flujo por fases con puntos de control, prompts de seguimiento, lecciones aprendidas y lista de verificación.
+
 ## [0.6.0] — 2026-10-14
 
 ### Agregado

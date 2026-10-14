@@ -26,6 +26,7 @@ DjClaudeBrave/
 │   └── ISSUE_TEMPLATE/   Plantillas para reportar problemas y proponer ideas
 ├── ARCHITECTURE.md       Este documento
 ├── CLAUDE.md             Instrucciones para que Claude trabaje en el proyecto
+├── PROMPT.md             Prompt maestro y flujo para replicar el proyecto
 ├── CONTRIBUTING.md       Cómo reportar, proponer y contribuir
 ├── CHANGELOG.md          Historial de versiones
 ├── README.md             Presentación del proyecto (español)
